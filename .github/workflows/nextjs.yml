@@ -17,40 +17,27 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # 1️⃣ Setup pnpm TRƯỚC
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 9
           run_install: false
 
-      # 2️⃣ Setup Node.js + pnpm cache
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'pnpm'
 
-      # 3️⃣ Setup Pages
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-        with:
-          static_site_generator: next
-
-      # 4️⃣ Install dependencies
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # 5️⃣ Build Next.js
-      - name: Build with Next.js
+      - name: Build
         run: pnpm build
 
-      # 6️⃣ Upload artifact
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
