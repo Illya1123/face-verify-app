@@ -22,48 +22,36 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Setup Node
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'pnpm'
-
-      # Setup pnpm
+      # 1️⃣ Setup pnpm TRƯỚC
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 9
           run_install: false
 
-      # Setup Pages
+      # 2️⃣ Setup Node.js + pnpm cache
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      # 3️⃣ Setup Pages
       - name: Setup Pages
         uses: actions/configure-pages@v5
         with:
           static_site_generator: next
 
-      # Install dependencies
+      # 4️⃣ Install dependencies
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Build Next.js
+      # 5️⃣ Build Next.js
       - name: Build with Next.js
         run: pnpm build
 
-      # Upload static site
+      # 6️⃣ Upload artifact
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./out
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
