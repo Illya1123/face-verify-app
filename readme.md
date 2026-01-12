@@ -17,11 +17,11 @@
 
 ## Features
 
-- ✨ Fluffless PWA using Next 13
-- 🌗 Lovely night/day themes
-- 🦄 Easily removable [nice-to-haves](#use-only-what-you-need)
-- 📱 Native-like mobile experience
-- 📦 Neatly wrapped like that avocado you got for christmas
+-   ✨ Fluffless PWA using Next 13
+-   🌗 Lovely night/day themes
+-   🦄 Easily removable [nice-to-haves](#use-only-what-you-need)
+-   📱 Native-like mobile experience
+-   📦 Neatly wrapped like that avocado you got for christmas
 
 ## Getting started
 
@@ -35,13 +35,13 @@ Fluffless doesn't mean "start with nothing". The goal of this template is to be 
 
 **The essentials**
 
-- Typescript, made easy with Next.js
-- [tailwindcss](https://github.com/tailwindlabs/tailwindcss) for utility-first styling
-- [next-pwa](https://github.com/shadowwalker/next-pwa) for offline support
+-   Typescript, made easy with Next.js
+-   [tailwindcss](https://github.com/tailwindlabs/tailwindcss) for utility-first styling
+-   [next-pwa](https://github.com/shadowwalker/next-pwa) for offline support
 
 **Nice to haves**
 
-- [next-themes](https://github.com/pacocoursey/next-themes) or similar for low stress theming
+-   [next-themes](https://github.com/pacocoursey/next-themes) or similar for low stress theming
 
 ## Gallery
 
