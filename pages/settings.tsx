@@ -48,7 +48,7 @@ const Settings = () => {
 
                 <div className="mt-2">
                     <p className="text-zinc-600 dark:text-zinc-400">
-                        This app uses community resources to provide a great experience.
+                        This tool is powered by <a href="https://github.com/Illya1123" className="underline">Illya1123</a> (Le Quoc Anh)
                     </p>
                 </div>
             </Section>
@@ -69,6 +69,13 @@ const Settings = () => {
                             Teenyicons
                         </a>{' '}
                         for lovely icons
+                    </li>
+
+                    <li className="text-sm text-zinc-600 dark:text-zinc-400">
+                        <a href="https://github.com/justadudewhohacks/face-api.js" className="underline">
+                            Face-api.js
+                        </a>{' '}
+                        for face recognition capabilities
                     </li>
                 </ul>
             </Section>
