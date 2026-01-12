@@ -142,7 +142,7 @@ export const compareFaceImages = async (
             ? `Cùng một người (Độ tương đồng: ${((1 - distance) * 100).toFixed(1)}%)`
             : `Khác người (Độ tương đồng: ${((1 - distance) * 100).toFixed(1)}%)`
 
-        message += `\nKhoảng cách: ${distance.toFixed(3)} (ngưỡng: ${FACE_DISTANCE_THRESHOLD})`
+        message += `\nDistance: ${distance.toFixed(3)} (ngưỡng: ${FACE_DISTANCE_THRESHOLD})`
         message += `\nKích thước khuôn mặt: ${refFaceSize.toFixed(0)}px / ${capFaceSize.toFixed(
             0
         )}px`

@@ -18,6 +18,7 @@ const CameraSection = ({
 }: CameraSectionProps) => {
     const webcamRef = useRef<Webcam>(null)
     const mobileCameraInputRef = useRef<HTMLInputElement>(null)
+
     const [isMobile, setIsMobile] = useState(false)
     const [isCameraSupported, setIsCameraSupported] = useState(false)
 
@@ -34,7 +35,7 @@ const CameraSection = ({
         }
     }
 
-    const captureFromCamera = () => {
+    const handleCapture = () => {
         const imageSrc = webcamRef.current?.getScreenshot()
         if (imageSrc) {
             onImageCapture(imageSrc)
@@ -49,8 +50,9 @@ const CameraSection = ({
     }
 
     return (
-        <div className="space-y-4">
-            {/* Hidden input for mobile camera */}
+        <div className="space-y-5">
+
+            {/* Hidden mobile camera input */}
             <input
                 ref={mobileCameraInputRef}
                 type="file"
@@ -60,52 +62,93 @@ const CameraSection = ({
                 className="hidden"
             />
 
-            {/* Open camera button */}
+            {/* Action button */}
             <div>
                 <button
+                    type="button"
                     onClick={handleOpenCamera}
-                    className="px-6 py-3 bg-gradient-to-r from-green-500 to-teal-600 text-white font-semibold rounded-lg shadow-lg hover:from-green-600 hover:to-teal-700 transition-all duration-300 transform hover:scale-105"
+                    className="
+                        w-full
+                        px-5 py-3
+                        rounded-md
+                        bg-blue-600
+                        text-white
+                        font-medium
+                        hover:bg-blue-700
+                        transition-colors
+                        disabled:opacity-50
+                    "
                 >
-                    📷 Mở Camera
+                    Mở camera
                 </button>
             </div>
 
-            {/* Desktop webcam */}
+            {/* Desktop camera preview */}
             {!isMobile && isCameraOpen && isCameraSupported && (
-                <div className="space-y-4 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border">
-                    <div className="flex justify-between items-center">
-                        <h4 className="text-md font-medium text-gray-900 dark:text-white">
-                            Camera Preview
+                <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 space-y-4">
+
+                    <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                            Camera preview
                         </h4>
                         <button
+                            type="button"
                             onClick={() => setIsCameraOpen(false)}
-                            className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors"
+                            className="
+                                text-sm
+                                text-gray-600
+                                hover:text-gray-900
+                                dark:text-gray-400
+                                dark:hover:text-gray-200
+                            "
                         >
                             Đóng
                         </button>
                     </div>
-                    <Webcam
-                        ref={webcamRef}
-                        audio={false}
-                        screenshotFormat="image/jpeg"
-                        videoConstraints={videoConstraints}
-                        mirrored
-                        playsInline
-                        className="w-full max-w-md h-96 border-2 border-gray-300 dark:border-gray-600 rounded-lg object-cover mx-auto"
-                    />
+
+                    <div className="flex justify-center">
+                        <Webcam
+                            ref={webcamRef}
+                            audio={false}
+                            screenshotFormat="image/jpeg"
+                            videoConstraints={videoConstraints}
+                            mirrored
+                            playsInline
+                            className="
+                                w-full
+                                max-w-sm
+                                aspect-[3/4]
+                                rounded-md
+                                border
+                                border-gray-300
+                                dark:border-gray-600
+                                object-cover
+                            "
+                        />
+                    </div>
 
                     <button
-                        onClick={captureFromCamera}
-                        className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-lg shadow-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105"
+                        type="button"
+                        onClick={handleCapture}
+                        className="
+                            w-full
+                            px-5 py-3
+                            rounded-md
+                            bg-green-600
+                            text-white
+                            font-medium
+                            hover:bg-green-700
+                            transition-colors
+                        "
                     >
-                        📸 Chụp Ảnh
+                        Chụp ảnh
                     </button>
                 </div>
             )}
 
             {!isCameraSupported && !isMobile && (
-                <p className="text-red-600 dark:text-red-400 text-sm">
-                    Camera không được hỗ trợ trên thiết bị này.
+                <p className="text-sm text-red-600 dark:text-red-400">
+                    Thiết bị không hỗ trợ truy cập camera.
                 </p>
             )}
         </div>
