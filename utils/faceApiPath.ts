@@ -1,6 +1,4 @@
 export const getFaceApiModelUrl = () => {
-  if (process.env.NODE_ENV === 'production') {
-    return '/face-verify-app/models'
-  }
-  return '/models'
+  if (typeof window === 'undefined') return '/models'
+  return `${window.location.origin}/models`
 }
