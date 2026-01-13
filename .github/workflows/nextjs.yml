@@ -38,6 +38,7 @@ jobs:
       - name: Build
         env:
           NODE_ENV: production
+          NEXT_PUBLIC_TARGET: gh-pages
         run: pnpm build
 
       - name: Debug PWA files
