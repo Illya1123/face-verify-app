@@ -17,6 +17,11 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    env:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: 1
+
     steps:
       - uses: actions/checkout@v4
 
@@ -30,20 +35,20 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build
-        env:
-          NODE_ENV: production
+      - name: Build (production)
         run: pnpm build
 
-      - name: Debug PWA files
+      - name: Verify PWA output
         run: |
+          echo "==== OUT DIR ===="
           ls -la out
-          ls -la out/service-worker.js || echo "NO SW"
+          echo "==== CHECK SW ===="
+          test -f out/service-worker.js && echo "SW OK" || (echo "NO SW" && exit 1)
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
