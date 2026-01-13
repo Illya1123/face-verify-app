@@ -73,7 +73,6 @@ module.exports = withPWA({
                 const srcFile = path.join(srcDir, file)
                 const destFile = path.join(destDir, file)
 
-\\
                 fs.copyFileSync(srcFile, destFile)
               })
 
