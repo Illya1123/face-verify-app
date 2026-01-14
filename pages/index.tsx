@@ -147,7 +147,7 @@ const Index = () => {
                             onImageCapture={handleCaptureImage}
                             onMobileImageSelect={handleMobileCapture}
                         />
-                        <ImagePreview capturedImage={capturedImage} />
+                        <ImagePreview capturedImage={capturedImage} rotate={true} />
                     </div>
                 </div>
                 )}
@@ -209,7 +209,7 @@ const Index = () => {
                             />
                             {capturedImage && (
                                 <div className="mt-4">
-                                    <ImagePreview capturedImage={capturedImage} />
+                                    <ImagePreview capturedImage={capturedImage} rotate={true} />
                                 </div>
                             )}
                         </div>

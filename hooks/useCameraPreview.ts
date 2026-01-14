@@ -345,15 +345,21 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
       const canvas = document.createElement('canvas')
       const video = videoRef.current
 
-      canvas.width = video.videoWidth
-      canvas.height = video.videoHeight
+      // Swap width and height for 90-degree rotation
+      canvas.width = video.videoHeight
+      canvas.height = video.videoWidth
 
       const ctx = canvas.getContext('2d')
       if (ctx) {
+        // Rotate 90 degrees counter-clockwise (-90 degrees)
+        ctx.translate(0, canvas.height)
+        ctx.rotate(-Math.PI / 2)
+
         // Mirror the image horizontally to match the preview
-        ctx.translate(canvas.width, 0)
+        ctx.translate(video.videoWidth, 0)
         ctx.scale(-1, 1)
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+        ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight)
 
         const base64Image = canvas.toDataURL('image/jpeg', 0.9)
         onCapture(base64Image)
