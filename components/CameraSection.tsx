@@ -25,11 +25,36 @@ const CameraSection = ({
     const [isMobile, setIsMobile] = useState(false)
     const [isCameraSupported, setIsCameraSupported] = useState(false)
     const [isCapacitor, setIsCapacitor] = useState(false)
+    const [videoConstraints, setVideoConstraints] = useState<{
+        facingMode: string
+        aspectRatio: number
+        height?: { ideal: number }
+    }>({
+        facingMode: 'user',
+        aspectRatio: 3 / 4,
+    })
 
     useEffect(() => {
         setIsMobile(/Android|iPhone|iPad|iPod/i.test(navigator.userAgent))
         setIsCameraSupported(!!navigator.mediaDevices?.getUserMedia)
         setIsCapacitor(Capacitor.isNativePlatform())
+
+        // Set video constraints based on screen size
+        const updateVideoConstraints = () => {
+            // Use 80vh for better fit
+            const height = Math.floor(window.innerHeight * 0.8)
+
+            setVideoConstraints({
+                facingMode: 'user',
+                aspectRatio: 3 / 4,
+                height: { ideal: Math.min(height, 1920) },
+            })
+        }
+
+        updateVideoConstraints()
+        window.addEventListener('resize', updateVideoConstraints)
+
+        return () => window.removeEventListener('resize', updateVideoConstraints)
     }, [])
 
     const handleOpenCamera = () => {
@@ -51,12 +76,6 @@ const CameraSection = ({
             onImageCapture(imageSrc)
             setIsCameraOpen(false)
         }
-    }
-
-    const videoConstraints = {
-        facingMode: 'user',
-        width: 1280,
-        height: 720,
     }
 
     return (

@@ -1,13 +1,70 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
+import { useState, useEffect } from 'react'
+import { Capacitor } from '@capacitor/core'
 
 const BottomNav = () => {
     const router = useRouter()
+    const [shouldShow, setShouldShow] = useState(true)
+    const [maxWidth, setMaxWidth] = useState('max-w-md')
+
+    useEffect(() => {
+        const platform = Capacitor.getPlatform()
+        const isMobileApp = platform === 'android' || platform === 'ios'
+        const forceMobileMode = localStorage.getItem('forceMobileMode') === 'true'
+
+        // Show bottom nav on mobile or when force mobile mode is on
+        setShouldShow(isMobileApp || forceMobileMode)
+        setMaxWidth('max-w-md')
+    }, [])
+
+    if (!shouldShow) {
+        return (
+            <div className="sm:hidden">
+                <nav className="fixed bottom-0 w-full border-t bg-white pb-safe dark:border-zinc-800 dark:bg-zinc-900">
+                    <div className={`mx-auto flex h-16 items-center justify-around px-6 relative ${maxWidth}`}>
+                        {links.map(({ href, label, icon, isCenter }) => (
+                            <Link
+                                key={label}
+                                href={href}
+                                className={`flex h-full flex-col items-center justify-center space-y-1 ${
+                                    isCenter
+                                        ? 'absolute left-1/2 -translate-x-1/2 -top-4'
+                                        : 'flex-1'
+                                }`}
+                            >
+                                {isCenter ? (
+                                    <div className="flex flex-col items-center">
+                                        <div className="w-16 h-16 rounded-full bg-indigo-600 dark:bg-indigo-500 flex items-center justify-center shadow-lg">
+                                            {icon}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className={router.pathname === href
+                                            ? 'text-indigo-600 dark:text-indigo-400'
+                                            : 'text-zinc-600 dark:text-zinc-400'}>
+                                            {icon}
+                                        </div>
+                                        <span className={`text-xs ${router.pathname === href
+                                            ? 'text-indigo-600 dark:text-indigo-400'
+                                            : 'text-zinc-600 dark:text-zinc-400'}`}>
+                                            {label}
+                                        </span>
+                                    </>
+                                )}
+                            </Link>
+                        ))}
+                    </div>
+                </nav>
+            </div>
+        )
+    }
 
     return (
-        <div className="sm:hidden">
+        <div>
             <nav className="fixed bottom-0 w-full border-t bg-white pb-safe dark:border-zinc-800 dark:bg-zinc-900">
-                <div className="mx-auto flex h-16 max-w-md items-center justify-around px-6 relative">
+                <div className={`mx-auto flex h-16 items-center justify-around px-6 relative ${maxWidth}`}>
                     {links.map(({ href, label, icon, isCenter }) => (
                         <Link
                             key={label}

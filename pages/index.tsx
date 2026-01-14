@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
+import { Capacitor } from '@capacitor/core'
 import Page from '@/components/page'
 import Section from '@/components/section'
 import ImageSelector from '@/components/ImageSelector'
@@ -19,8 +20,22 @@ const Index = () => {
     const [isCameraOpen, setIsCameraOpen] = useState(false)
     const [referenceWithLandmarks, setReferenceWithLandmarks] = useState<string | null>(null)
     const [capturedWithLandmarks, setCapturedWithLandmarks] = useState<string | null>(null)
+    const [isMobileMode, setIsMobileMode] = useState(false)
 
     const { modelsLoaded, modelsLoading } = useFaceModels()
+
+    // Detect if running on Android/iOS to force mobile layout
+    useEffect(() => {
+        const platform = Capacitor.getPlatform()
+        // Force mobile layout for native apps (Android/iOS)
+        // Web platform will use responsive design (md: breakpoints)
+        const isNativeApp = platform === 'android' || platform === 'ios'
+
+        // Check if user forced mobile mode in settings
+        const forcedMode = localStorage.getItem('forceMobileMode') === 'true'
+
+        setIsMobileMode(isNativeApp || forcedMode)
+    }, [])
 
     // Check localStorage for captured image on mount
     useEffect(() => {
@@ -83,8 +98,8 @@ const Index = () => {
             <Section>
 
                 {/* ===== Header ===== */}
-                <div className="mb-10 text-center max-w-2xl mx-auto">
-                    <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">
+                <div className={`text-center md:max-w-2xl md:mx-auto ${isMobileMode ? 'mb-[2vh]' : 'mb-6 md:mb-10'}`}>
+                    <h1 className="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white">
                         Face Verification
                     </h1>
                     <p className="mt-2 text-gray-600 dark:text-gray-400 text-sm">
@@ -102,8 +117,9 @@ const Index = () => {
                     </div>
                 )}
 
-                {/* ===== Main content ===== */}
-                <div className="grid md:grid-cols-2 gap-8">
+                {/* ===== Desktop Layout (2 columns) - Only for Web ===== */}
+                {!isMobileMode && (
+                    <div className="hidden md:grid md:grid-cols-2 gap-8">
 
                     {/* Step 1 */}
                     <div className="rounded-lg border bg-white dark:bg-gray-800 dark:border-gray-700 p-6">
@@ -134,9 +150,108 @@ const Index = () => {
                         <ImagePreview capturedImage={capturedImage} />
                     </div>
                 </div>
+                )}
 
-                {/* ===== Action ===== */}
-                <div className="mt-10 text-center">
+                {/* ===== Mobile Layout (vertical cards) ===== */}
+                <div className={isMobileMode ? 'flex flex-col' : 'md:hidden space-y-4'} style={isMobileMode ? { gap: '1.5vh' } : undefined}>
+
+                    {/* Reference Image Card */}
+                    <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden" style={isMobileMode ? { minHeight: '30vh' } : undefined}>
+                        <div className={isMobileMode ? 'p-4' : 'p-5'}>
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                        Ảnh tham chiếu
+                                    </h3>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                        Upload ảnh khuôn mặt cần xác minh
+                                    </p>
+                                </div>
+                                <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+                                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <ImageSelector onImageSelect={handleReferenceImageSelect} />
+                            {referenceImage && (
+                                <div className="mt-4">
+                                    <ImagePreview capturedImage={referenceImage} />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Camera/Verification Card */}
+                    <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden" style={isMobileMode ? { minHeight: '30vh' } : undefined}>
+                        <div className={isMobileMode ? 'p-4' : 'p-5'}>
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                        Ảnh xác minh
+                                    </h3>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                        Chụp ảnh trực tiếp từ camera
+                                    </p>
+                                </div>
+                                <div className="w-10 h-10 rounded-full bg-green-50 dark:bg-green-900/30 flex items-center justify-center">
+                                    <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <CameraSection
+                                isCameraOpen={isCameraOpen}
+                                setIsCameraOpen={setIsCameraOpen}
+                                onImageCapture={handleCaptureImage}
+                                onMobileImageSelect={handleMobileCapture}
+                            />
+                            {capturedImage && (
+                                <div className="mt-4">
+                                    <ImagePreview capturedImage={capturedImage} />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Compare Button - Mobile */}
+                    <button
+                        onClick={compareFaces}
+                        disabled={!referenceImage || !capturedImage || !modelsLoaded || isComparing}
+                        className="
+                            w-full
+                            rounded-2xl
+                            bg-gradient-to-r from-blue-600 to-indigo-600
+                            text-white
+                            text-base font-semibold
+                            shadow-lg shadow-blue-500/50
+                            hover:shadow-xl hover:shadow-blue-500/50
+                            disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none
+                            transition-all
+                            flex items-center justify-center gap-2
+                        "
+                        style={isMobileMode ? { minHeight: '7vh', paddingTop: '1.5vh', paddingBottom: '1.5vh' } : { paddingTop: '1rem', paddingBottom: '1rem' }}
+                    >
+                        {isComparing ? (
+                            <>
+                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                Đang so sánh...
+                            </>
+                        ) : (
+                            <>
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                So sánh khuôn mặt
+                            </>
+                        )}
+                    </button>
+                </div>
+
+                {/* ===== Action - Desktop - Only for Web ===== */}
+                {!isMobileMode && (
+                    <div className="hidden md:block mt-10 text-center">
                     <button
                         onClick={compareFaces}
                         disabled={!referenceImage || !capturedImage || !modelsLoaded || isComparing}
@@ -154,96 +269,108 @@ const Index = () => {
                         {isComparing ? 'Đang so sánh…' : 'So sánh khuôn mặt'}
                     </button>
                 </div>
+                )}
 
                 {/* ===== Result ===== */}
                 {comparisonResult && (
-    <div
-        className={`mt-10 rounded-xl border p-6 ${
-            comparisonResult.includes('Cùng một người')
-                ? 'bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-700'
-                : 'bg-red-50 border-red-200 dark:bg-red-900/30 dark:border-red-700'
-        }`}
-    >
-        {/* ===== Header ===== */}
-        <div className="mb-4">
-            <h3
-                className={`text-base font-semibold ${
-                    comparisonResult.includes('Cùng một người')
-                        ? 'text-green-800 dark:text-green-200'
-                        : 'text-red-800 dark:text-red-200'
-                }`}
-            >
-                Kết quả xác minh khuôn mặt
-            </h3>
-            <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                Kết quả được tính toán dựa trên vector đặc trưng khuôn mặt và khoảng cách Euclidean
-            </p>
-        </div>
-
-        {/* ===== Result text ===== */}
-        <div
-            className={`rounded-lg px-4 py-3 text-sm whitespace-pre-line ${
-                comparisonResult.includes('Cùng một người')
-                    ? 'bg-green-100 text-green-900 dark:bg-green-800/40 dark:text-green-100'
-                    : 'bg-red-100 text-red-900 dark:bg-red-800/40 dark:text-red-100'
-            }`}
-        >
-            {comparisonResult}
-        </div>
-
-        {/* ===== Divider ===== */}
-        {referenceWithLandmarks && capturedWithLandmarks && (
-            <div className="my-6 h-px bg-gray-200 dark:bg-gray-700" />
-        )}
-
-        {/* ===== Landmarks section ===== */}
-        {referenceWithLandmarks && capturedWithLandmarks && (
-            <div>
-                <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-3">
-                    Phân tích chi tiết khuôn mặt (68 landmarks)
-                </h4>
-
-                <div className="grid md:grid-cols-2 gap-6">
-                    <div>
-                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
-                            Ảnh tham chiếu
-                        </p>
-                        <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                            <Image
-                                src={referenceWithLandmarks}
-                                alt="Reference landmarks"
-                                width={640}
-                                height={640}
-                                className="w-full"
-                                unoptimized
-                            />
+                    <div className={`rounded-2xl md:rounded-xl border ${isMobileMode ? 'p-4' : 'p-5 md:p-6'} ${
+                        comparisonResult.includes('Cùng một người')
+                            ? 'bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-700'
+                            : 'bg-red-50 border-red-200 dark:bg-red-900/30 dark:border-red-700'
+                    }`} style={isMobileMode ? { marginTop: '2vh' } : { marginTop: '1.5rem' }}>
+                        {/* ===== Header ===== */}
+                        <div className="mb-4">
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                    comparisonResult.includes('Cùng một người')
+                                        ? 'bg-green-100 dark:bg-green-800'
+                                        : 'bg-red-100 dark:bg-red-800'
+                                }`}>
+                                    {comparisonResult.includes('Cùng một người') ? (
+                                        <svg className="w-5 h-5 text-green-600 dark:text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    ) : (
+                                        <svg className="w-5 h-5 text-red-600 dark:text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    )}
+                                </div>
+                                <h3 className={`text-base md:text-base font-semibold ${
+                                    comparisonResult.includes('Cùng một người')
+                                        ? 'text-green-800 dark:text-green-200'
+                                        : 'text-red-800 dark:text-red-200'
+                                }`}>
+                                    Kết quả xác minh
+                                </h3>
+                            </div>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 ml-10">
+                                Kết quả được tính toán dựa trên vector đặc trưng khuôn mặt
+                            </p>
                         </div>
-                    </div>
 
-                    <div>
-                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
-                            Ảnh xác minh
-                        </p>
-                        <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                            <Image
-                                src={capturedWithLandmarks}
-                                alt="Captured landmarks"
-                                width={640}
-                                height={640}
-                                className="w-full"
-                                unoptimized
-                            />
+                        {/* ===== Result text ===== */}
+                        <div className={`rounded-xl md:rounded-lg px-4 py-3 text-sm whitespace-pre-line ${
+                            comparisonResult.includes('Cùng một người')
+                                ? 'bg-green-100 text-green-900 dark:bg-green-800/40 dark:text-green-100'
+                                : 'bg-red-100 text-red-900 dark:bg-red-800/40 dark:text-red-100'
+                        }`}>
+                            {comparisonResult}
                         </div>
-                    </div>
-                </div>
 
-                <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                    Các điểm landmark được dùng để căn chỉnh khuôn mặt trước khi trích xuất vector đặc trưng.
-                </p>
-            </div>
-        )}
-    </div>
-)}
+                        {/* ===== Landmarks section ===== */}
+                        {referenceWithLandmarks && capturedWithLandmarks && (
+                            <>
+                                <div className="my-5 h-px bg-gray-200 dark:bg-gray-700" />
+                                <div>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                                            Phân tích chi tiết (68 landmarks)
+                                        </h4>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                                        <div className="space-y-2">
+                                            <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                                Ảnh tham chiếu
+                                            </p>
+                                            <div className="rounded-xl md:rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                                                <Image
+                                                    src={referenceWithLandmarks}
+                                                    alt="Reference landmarks"
+                                                    width={640}
+                                                    height={640}
+                                                    className="w-full"
+                                                    unoptimized
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                                Ảnh xác minh
+                                            </p>
+                                            <div className="rounded-xl md:rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                                                <Image
+                                                    src={capturedWithLandmarks}
+                                                    alt="Captured landmarks"
+                                                    width={640}
+                                                    height={640}
+                                                    className="w-full"
+                                                    unoptimized
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                                        Các điểm landmark được dùng để căn chỉnh khuôn mặt trước khi trích xuất vector đặc trưng.
+                                    </p>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
 
 
             </Section>

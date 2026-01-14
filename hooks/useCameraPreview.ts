@@ -11,14 +11,29 @@ interface UseCameraPreviewProps {
   onClose: () => void
 }
 
+type CameraPosition = 'front' | 'rear'
+
+interface CameraDevice {
+  deviceId: string
+  label: string
+  position?: CameraPosition
+}
+
 export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) => {
   const startedRef = useRef(false)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
 
   const [isActive, setIsActive] = useState(false)
   const [isCapturing, setIsCapturing] = useState(false)
   const [isCheckingPermission, setIsCheckingPermission] = useState(true)
   const [permissionGranted, setPermissionGranted] = useState(false)
   const [permissionDenied, setPermissionDenied] = useState(false)
+  const [currentCamera, setCurrentCamera] = useState<CameraPosition>('front')
+  const [availableCameras, setAvailableCameras] = useState<CameraPosition[]>(['front'])
+  const [cameraDevices, setCameraDevices] = useState<CameraDevice[]>([])
+  const [currentDeviceId, setCurrentDeviceId] = useState<string>('')
+  const [isWebCamera, setIsWebCamera] = useState(false)
 
   /* =========================
      LIFECYCLE
@@ -28,6 +43,7 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
 
     return () => {
       stopCameraSafe()
+      stopWebCamera()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -48,8 +64,9 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
       setIsCheckingPermission(true)
 
       if (!Capacitor.isNativePlatform()) {
-        console.warn('CameraPreview chỉ chạy trên Android / iOS')
-        setPermissionDenied(true)
+        console.warn('Not native platform, using web camera')
+        setIsWebCamera(true)
+        await initWebCamera()
         return
       }
 
@@ -61,6 +78,10 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
       }
 
       setPermissionGranted(true)
+
+      // Detect available cameras
+      await detectAvailableCameras()
+
       await startCamera()
     } catch (err) {
       console.error('Init camera error:', err)
@@ -71,15 +92,152 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
   }
 
   /* =========================
+     DETECT CAMERAS
+     ========================= */
+  const detectAvailableCameras = async () => {
+    try {
+      // Thử start cả front và rear để detect
+      const cameras: CameraPosition[] = []
+
+      // Front camera luôn có
+      cameras.push('front')
+
+      // Thử detect rear camera
+      try {
+        await CameraPreview.start({
+          position: 'rear',
+          parent: 'capacitor-camera-preview',
+          className: 'capacitor-camera-preview-view',
+          toBack: true,
+          width: 1,
+          height: 1,
+        })
+        cameras.push('rear')
+        await CameraPreview.stop()
+        startedRef.current = false
+      } catch {
+        // Rear camera không có
+      }
+
+      setAvailableCameras(cameras)
+    } catch (err) {
+      console.error('Detect cameras error:', err)
+      setAvailableCameras(['front'])
+    }
+  }
+
+  /* =========================
+     WEB CAMERA (USB/Webcam)
+     ========================= */
+  const initWebCamera = async () => {
+    try {
+      // Request permission first
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+      stream.getTracks().forEach(track => track.stop())
+
+      // Enumerate all video devices
+      const devices = await navigator.mediaDevices.enumerateDevices()
+      const videoDevices = devices.filter(device => device.kind === 'videoinput')
+
+      const cameras: CameraDevice[] = videoDevices.map((device, index) => ({
+        deviceId: device.deviceId,
+        label: device.label || `Camera ${index + 1}`,
+      }))
+
+      // Sort cameras: USB/External cameras first, built-in cameras last
+      const sortedCameras = cameras.sort((a, b) => {
+        const builtInKeywords = ['integrated', 'facetime', 'front', 'rear', 'webcam', 'built-in']
+        const aIsBuiltIn = builtInKeywords.some(keyword =>
+          a.label.toLowerCase().includes(keyword)
+        )
+        const bIsBuiltIn = builtInKeywords.some(keyword =>
+          b.label.toLowerCase().includes(keyword)
+        )
+
+        // USB cameras (not built-in) come first
+        if (!aIsBuiltIn && bIsBuiltIn) return -1
+        if (aIsBuiltIn && !bIsBuiltIn) return 1
+        return 0
+      })
+
+      console.log('Found cameras (USB first):', sortedCameras)
+      setCameraDevices(sortedCameras)
+
+      if (sortedCameras.length > 0) {
+        setPermissionGranted(true)
+        setCurrentDeviceId(sortedCameras[0].deviceId)
+        await startWebCamera(sortedCameras[0].deviceId)
+      } else {
+        setPermissionDenied(true)
+      }
+    } catch (err) {
+      console.error('Init web camera error:', err)
+      setPermissionDenied(true)
+    } finally {
+      setIsCheckingPermission(false)
+    }
+  }
+
+  const startWebCamera = async (deviceId?: string) => {
+    try {
+      // Stop existing stream
+      stopWebCamera()
+
+      const targetDeviceId = deviceId || currentDeviceId
+      console.log('Starting web camera with deviceId:', targetDeviceId)
+
+      const constraints: MediaStreamConstraints = {
+        video: targetDeviceId
+          ? { deviceId: { exact: targetDeviceId } }
+          : { facingMode: 'user' }
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints)
+      streamRef.current = stream
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        await videoRef.current.play()
+        setIsActive(true)
+        setCurrentDeviceId(targetDeviceId)
+        console.log('Web camera started successfully')
+      }
+    } catch (err) {
+      console.error('Start web camera error:', err)
+      setPermissionDenied(true)
+    }
+  }
+
+  const stopWebCamera = () => {
+    try {
+      if (streamRef.current) {
+        console.log('Stopping web camera...')
+        streamRef.current.getTracks().forEach(track => {
+          track.stop()
+          console.log('Stopped track:', track.label)
+        })
+        streamRef.current = null
+        setIsActive(false)
+        console.log('Web camera stopped successfully')
+      }
+    } catch (err) {
+      console.error('Stop web camera error:', err)
+    }
+  }
+
+  /* =========================
      CAMERA CONTROL
      ========================= */
-  const startCamera = async () => {
-    if (startedRef.current) return
+  const startCamera = async (position?: CameraPosition) => {
+    if (startedRef.current) {
+      await stopCameraSafe()
+    }
 
     try {
       console.log('Starting camera...')
+      const cameraPosition = position || currentCamera
       const options: CameraPreviewOptions = {
-        position: 'front',
+        position: cameraPosition,
         parent: 'capacitor-camera-preview',
         className: 'capacitor-camera-preview-view',
         toBack: true,
@@ -91,6 +249,7 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
       await CameraPreview.start(options)
       startedRef.current = true
       setIsActive(true)
+      setCurrentCamera(cameraPosition)
       console.log('Camera started successfully')
     } catch (err) {
       console.error('Start camera error:', err)
@@ -101,49 +260,51 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
   const stopCameraSafe = async () => {
     try {
       if (startedRef.current) {
+        console.log('Stopping camera...')
         await CameraPreview.stop()
         startedRef.current = false
         setIsActive(false)
+        console.log('Camera stopped successfully')
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error('Stop camera error:', err)
     }
   }
 
   /* =========================
      IMAGE PROCESSING
      ========================= */
-  const rotateImage = (base64Image: string, degrees: number): Promise<string> => {
-    return new Promise((resolve) => {
-      const img = new Image()
-      img.onload = () => {
-        const canvas = document.createElement('canvas')
-        const ctx = canvas.getContext('2d')
+  // const rotateImage = (base64Image: string, degrees: number): Promise<string> => {
+  //   return new Promise((resolve) => {
+  //     const img = new Image()
+  //     img.onload = () => {
+  //       const canvas = document.createElement('canvas')
+  //       const ctx = canvas.getContext('2d')
 
-        if (!ctx) {
-          resolve(base64Image)
-          return
-        }
+  //       if (!ctx) {
+  //         resolve(base64Image)
+  //         return
+  //       }
 
-        // Set canvas size based on rotation
-        if (degrees === 90 || degrees === 270) {
-          canvas.width = img.height
-          canvas.height = img.width
-        } else {
-          canvas.width = img.width
-          canvas.height = img.height
-        }
+  //       // Set canvas size based on rotation
+  //       if (degrees === 90 || degrees === 270) {
+  //         canvas.width = img.height
+  //         canvas.height = img.width
+  //       } else {
+  //         canvas.width = img.width
+  //         canvas.height = img.height
+  //       }
 
-        // Rotate and draw
-        ctx.translate(canvas.width / 2, canvas.height / 2)
-        ctx.rotate((degrees * Math.PI) / 180)
-        ctx.drawImage(img, -img.width / 2, -img.height / 2)
+  //       // Rotate and draw
+  //       ctx.translate(canvas.width / 2, canvas.height / 2)
+  //       ctx.rotate((degrees * Math.PI) / 180)
+  //       ctx.drawImage(img, -img.width / 2, -img.height / 2)
 
-        resolve(canvas.toDataURL('image/jpeg', 0.9))
-      }
-      img.src = base64Image
-    })
-  }
+  //       resolve(canvas.toDataURL('image/jpeg', 0.9))
+  //     }
+  //     img.src = base64Image
+  //   })
+  // }
 
   /* =========================
      ACTIONS
@@ -154,18 +315,22 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
     try {
       setIsCapturing(true)
 
-      const result = await CameraPreview.capture({
-        quality: 90,
-      })
+      if (isWebCamera) {
+        // Capture from web camera
+        await captureFromWebCamera()
+      } else {
+        // Capture from native camera
+        const result = await CameraPreview.capture({
+          quality: 90,
+        })
 
-      if (result?.value) {
-        const base64Image = `data:image/jpeg;base64,${result.value}`
-        // Rotate image 270 degrees (or -90) to fix orientation
-        const rotatedImage = await rotateImage(base64Image, 270)
-        onCapture(rotatedImage)
+        if (result?.value) {
+          const base64Image = `data:image/jpeg;base64,${result.value}`
+          onCapture(base64Image)
+        }
+
+        await stopCameraSafe()
       }
-
-      await stopCameraSafe()
     } catch (err) {
       console.error('Capture error:', err)
     } finally {
@@ -173,12 +338,51 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
     }
   }
 
+  const captureFromWebCamera = async () => {
+    if (!videoRef.current) return
+
+    try {
+      const canvas = document.createElement('canvas')
+      const video = videoRef.current
+
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+
+      const ctx = canvas.getContext('2d')
+      if (ctx) {
+        // Mirror the image horizontally to match the preview
+        ctx.translate(canvas.width, 0)
+        ctx.scale(-1, 1)
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+        const base64Image = canvas.toDataURL('image/jpeg', 0.9)
+        onCapture(base64Image)
+      }
+
+      stopWebCamera()
+    } catch (err) {
+      console.error('Capture from web camera error:', err)
+    }
+  }
+
   const handleFlipCamera = async () => {
     try {
       await CameraPreview.flip()
+      // Toggle current camera state
+      setCurrentCamera(prev => prev === 'front' ? 'rear' : 'front')
     } catch (err) {
       console.error('Flip error:', err)
     }
+  }
+
+  const handleSwitchCamera = async (position: CameraPosition) => {
+    if (position === currentCamera) return
+    await startCamera(position)
+  }
+
+  const handleSwitchWebCamera = async (deviceId: string) => {
+    if (deviceId === currentDeviceId) return
+    await startWebCamera(deviceId)
   }
 
   const handleRetryPermission = async () => {
@@ -188,7 +392,11 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
   }
 
   const handleClose = async () => {
-    await stopCameraSafe()
+    if (isWebCamera) {
+      stopWebCamera()
+    } else {
+      await stopCameraSafe()
+    }
     onClose()
   }
 
@@ -199,9 +407,17 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
     isCheckingPermission,
     permissionGranted,
     permissionDenied,
+    currentCamera,
+    availableCameras,
+    isWebCamera,
+    cameraDevices,
+    currentDeviceId,
+    videoRef,
     // Actions
     handleCapture,
     handleFlipCamera,
+    handleSwitchCamera,
+    handleSwitchWebCamera,
     handleRetryPermission,
     handleClose,
   }

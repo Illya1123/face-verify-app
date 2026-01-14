@@ -17,18 +17,30 @@ const CapacitorCameraPreview = ({
     isCheckingPermission,
     permissionGranted,
     permissionDenied,
+    currentCamera,
+    availableCameras,
+    isWebCamera,
+    cameraDevices,
+    currentDeviceId,
+    videoRef,
     handleCapture,
     handleFlipCamera,
+    handleSwitchCamera,
+    handleSwitchWebCamera,
     handleRetryPermission,
     handleClose,
   } = useCameraPreview({ onCapture, onClose })
+
+  const hasMultipleCameras = isWebCamera
+    ? cameraDevices.length > 1
+    : availableCameras.length > 1
 
   return (
     <div className="fixed inset-0 z-50">
       {/* Camera UI - Always render on top */}
       <div className="absolute inset-0 z-10 pointer-events-none">
         {/* Top bar */}
-        <div className="absolute top-0 left-0 right-0 pointer-events-auto">
+        <div className="absolute top-0 left-0 right-0 pointer-events-auto pt-safe">
           <div className="flex justify-between items-center p-4 bg-gradient-to-b from-black/80 to-transparent">
             <button
               onClick={handleClose}
@@ -39,47 +51,100 @@ const CapacitorCameraPreview = ({
               </svg>
               Quay lại
             </button>
-            <span className="text-white font-semibold text-lg">Camera</span>
-            <button
-              onClick={handleFlipCamera}
-              className="w-10 h-10 flex items-center justify-center bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors"
-              title="Lật camera"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </button>
+            {/* <span className="text-white font-semibold text-lg">Camera</span> */}
+
+            <div className="flex items-center gap-2">
+              {/* {hasMultipleCameras && (
+                <div className="relative">
+                  <select
+                    value={isWebCamera ? currentDeviceId : currentCamera}
+                    onChange={(e) => {
+                      if (isWebCamera) {
+                        handleSwitchWebCamera(e.target.value)
+                      } else {
+                        handleSwitchCamera(e.target.value as 'front' | 'rear')
+                      }
+                    }}
+                    className="appearance-none bg-black/50 text-white text-sm rounded-lg px-3 py-2 pr-8 hover:bg-black/70 transition-colors cursor-pointer"
+                  >
+                    {isWebCamera ? (
+                      cameraDevices.map((camera) => (
+                        <option key={camera.deviceId} value={camera.deviceId} className="bg-gray-900">
+                          {camera.label}
+                        </option>
+                      ))
+                    ) : (
+                      availableCameras.map((camera) => (
+                        <option key={camera} value={camera} className="bg-gray-900">
+                          {camera === 'front' ? 'Front Camera' : 'Rear Camera'}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+              )} */}
+
+              {hasMultipleCameras && !isWebCamera && (
+                <button
+                  onClick={handleFlipCamera}
+                  className="w-10 h-10 flex items-center justify-center bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors"
+                  title="Switch camera"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Center guide with face frame - Only show when camera is active */}
         {permissionGranted && isActive && (
           <>
+            {/* Dark overlay with transparent center */}
             <div className="absolute inset-0 flex items-center justify-center p-8">
-              <div className="relative">
-                {/* Face frame with corners */}
-                <div className="w-72 h-96 relative">
-                  {/* Top-left corner */}
-                  <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-white rounded-tl-lg"></div>
-                  {/* Top-right corner */}
-                  <div className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-white rounded-tr-lg"></div>
-                  {/* Bottom-left corner */}
-                  <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-white rounded-bl-lg"></div>
-                  {/* Bottom-right corner */}
-                  <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-white rounded-br-lg"></div>
-                </div>
+              <div className="relative w-full h-full flex items-center justify-center">
+                {/* Dark overlay */}
+                {/* <div className="absolute inset-0 bg-black/50"></div> */}
 
-                {/* Instruction text */}
-                <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 text-center">
-                  <p className="text-white text-sm font-medium drop-shadow-lg bg-black/30 px-3 py-1 rounded-lg">
-                    Đưa gương mặt vào trong khung
-                  </p>
+                {/* Transparent center hole for face frame */}
+                <div className="relative z-10">
+                  {/* Face frame with corners - responsive size based on screen */}
+                  <div className="relative" style={{
+                    width: 'min(80vw, 60vh)',
+                    aspectRatio: '3/4'
+                  }}>
+                    {/* Transparent center */}
+                    {/* <div className="absolute inset-0 border-2 rounded-lg"></div> */}
+
+                    {/* Top-left corner */}
+                    <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-black rounded-tl-lg"></div>
+                    {/* Top-right corner */}
+                    <div className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-black rounded-tr-lg"></div>
+                    {/* Bottom-left corner */}
+                    <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-black rounded-bl-lg"></div>
+                    {/* Bottom-right corner */}
+                    <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-black rounded-br-lg"></div>
+                  </div>
+
+                  {/* Instruction text */}
+                  <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 text-center whitespace-nowrap">
+                    <p className="text-white text-sm font-medium drop-shadow-lg bg-black/60 px-4 py-2 rounded-lg">
+                      Đưa gương mặt vào trong khung
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Bottom capture area */}
-            <div className="absolute bottom-0 left-0 right-0 pointer-events-auto">
+            <div className="absolute bottom-0 left-0 right-0 pointer-events-auto pb-safe">
               <div className="flex justify-center items-center p-8 bg-gradient-to-t from-black/80 to-transparent">
                 <button
                   onClick={handleCapture}
@@ -107,10 +172,24 @@ const CapacitorCameraPreview = ({
       </div>
 
       {/* Native camera layer - Render after UI to ensure it doesn't cover buttons */}
-      <div
-        id="capacitor-camera-preview"
-        className="absolute inset-0 w-full h-full z-0"
-      />
+      {!isWebCamera && (
+        <div
+          id="capacitor-camera-preview"
+          className="absolute inset-0 w-full h-full z-0"
+        />
+      )}
+
+      {/* Web camera video element */}
+      {isWebCamera && (
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          style={{ transform: 'scaleX(-1)' }}
+          className="absolute inset-0 w-full h-full object-cover z-0"
+        />
+      )}
 
       {/* Loading */}
       {isCheckingPermission && (
