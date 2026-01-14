@@ -1,7 +1,9 @@
 'use client'
 
 import { useRef, useState, useEffect } from 'react'
+import { useRouter } from 'next/router'
 import Webcam from 'react-webcam'
+import { Capacitor } from '@capacitor/core'
 
 interface CameraSectionProps {
     isCameraOpen: boolean
@@ -16,21 +18,29 @@ const CameraSection = ({
     onImageCapture,
     onMobileImageSelect,
 }: CameraSectionProps) => {
+    const router = useRouter()
     const webcamRef = useRef<Webcam>(null)
     const mobileCameraInputRef = useRef<HTMLInputElement>(null)
 
     const [isMobile, setIsMobile] = useState(false)
     const [isCameraSupported, setIsCameraSupported] = useState(false)
+    const [isCapacitor, setIsCapacitor] = useState(false)
 
     useEffect(() => {
         setIsMobile(/Android|iPhone|iPad|iPod/i.test(navigator.userAgent))
         setIsCameraSupported(!!navigator.mediaDevices?.getUserMedia)
+        setIsCapacitor(Capacitor.isNativePlatform())
     }, [])
 
     const handleOpenCamera = () => {
-        if (isMobile) {
+        // Nếu chạy trong Capacitor app, navigate sang trang camera
+        if (isCapacitor) {
+            router.push('/camera')
+        } else if (isMobile) {
+            // Trên mobile browser, dùng file input
             mobileCameraInputRef.current?.click()
         } else {
+            // Trên desktop, dùng webcam
             setIsCameraOpen(true)
         }
     }
@@ -51,7 +61,6 @@ const CameraSection = ({
 
     return (
         <div className="space-y-5">
-
             {/* Hidden mobile camera input */}
             <input
                 ref={mobileCameraInputRef}

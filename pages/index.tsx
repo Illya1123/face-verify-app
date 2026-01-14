@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Page from '@/components/page'
 import Section from '@/components/section'
@@ -21,6 +21,15 @@ const Index = () => {
     const [capturedWithLandmarks, setCapturedWithLandmarks] = useState<string | null>(null)
 
     const { modelsLoaded, modelsLoading } = useFaceModels()
+
+    // Check localStorage for captured image on mount
+    useEffect(() => {
+        const capturedImageFromStorage = localStorage.getItem('capturedImage')
+        if (capturedImageFromStorage) {
+            handleCaptureImage(capturedImageFromStorage)
+            localStorage.removeItem('capturedImage')
+        }
+    }, [])
 
     const handleReferenceImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0]

@@ -2,11 +2,59 @@
 @tailwind components;
 @tailwind utilities;
 
+html,
+body,
+#__next {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+
+    background: transparent !important;
+}
+
 body {
-    @apply min-h-screen select-none bg-zinc-50 text-zinc-900 antialiased p-safe dark:bg-zinc-900 dark:text-zinc-50;
+    @apply min-h-screen select-none text-zinc-900 antialiased p-safe dark:text-zinc-50;
+
+    background: transparent !important;
 
     /* PWA enhancements */
     -webkit-overflow-scrolling: touch;
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
 }
+
+/* ============================
+   CAMERA PREVIEW FIX
+   ============================ */
+
+#capacitor-camera-preview,
+.capacitor-camera-preview-view {
+    width: 100%;
+    height: 100%;
+    background: transparent !important;
+}
+
+/* Một số WebView Android vẽ layer đen nếu có filter */
+* {
+    filter: none !important;
+    backdrop-filter: none !important;
+}
+
+/* ============================
+   SAFE AREA (NOTCH)
+   ============================ */
+
+.p-safe {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ============================
+   OPTIONAL DEBUG
+   ============================ */
+/*
+.debug-transparent {
+    background: rgba(255, 0, 0, 0.15) !important;
+}
+*/

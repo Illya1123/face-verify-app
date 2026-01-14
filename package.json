@@ -6,14 +6,16 @@
         "dev": "next dev",
         "dev:host": "next dev -H 0.0.0.0 -p 3000",
         "build": "next build",
-		"build:android": "NEXT_PUBLIC_TARGET=android next build && npx cap sync android",
+        "build:android": "NEXT_PUBLIC_TARGET=android next build && npx cap sync android",
         "start": "next start",
         "lint": "next lint",
         "format": "prettier . --write",
         "format:check": "prettier . --check"
     },
     "dependencies": {
+        "@capacitor-community/camera-preview": "^7.0.2",
         "@capacitor/android": "^8.0.0",
+        "@capacitor/camera": "^8.0.0",
         "@tanstack/react-query": "^5.90.16",
         "face-api.js": "^0.22.2",
         "next": "14.2.35",
