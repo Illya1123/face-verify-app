@@ -41,14 +41,11 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
      LIFECYCLE
      ========================= */
   useEffect(() => {
-    // Detect if device needs rotation correction
-    // Phones typically need rotation, but tablet/kiosk devices don't
     const detectDeviceType = () => {
       const userAgent = navigator.userAgent.toLowerCase()
       const isPhone = /mobile|android.*mobile|iphone|ipod/.test(userAgent) &&
                       !/tablet|ipad/.test(userAgent)
 
-      // Additional check: screen size - phones usually have smaller screens
       const screenSize = Math.min(window.screen.width, window.screen.height)
       const isSmallScreen = screenSize < 768 // Less than tablet size
 
@@ -149,11 +146,9 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
      ========================= */
   const initWebCamera = async () => {
     try {
-      // Request permission first
       const stream = await navigator.mediaDevices.getUserMedia({ video: true })
       stream.getTracks().forEach(track => track.stop())
 
-      // Enumerate all video devices
       const devices = await navigator.mediaDevices.enumerateDevices()
       const videoDevices = devices.filter(device => device.kind === 'videoinput')
 
@@ -162,7 +157,6 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
         label: device.label || `Camera ${index + 1}`,
       }))
 
-      // Sort cameras: USB/External cameras first, built-in cameras last
       const sortedCameras = cameras.sort((a, b) => {
         const builtInKeywords = ['integrated', 'facetime', 'front', 'rear', 'webcam', 'built-in']
         const aIsBuiltIn = builtInKeywords.some(keyword =>
@@ -172,7 +166,6 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
           b.label.toLowerCase().includes(keyword)
         )
 
-        // USB cameras (not built-in) come first
         if (!aIsBuiltIn && bIsBuiltIn) return -1
         if (aIsBuiltIn && !bIsBuiltIn) return 1
         return 0
@@ -198,7 +191,6 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
 
   const startWebCamera = async (deviceId?: string) => {
     try {
-      // Stop existing stream
       stopWebCamera()
 
       const targetDeviceId = deviceId || currentDeviceId
@@ -304,16 +296,11 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
           resolve(base64Image)
           return
         }
-
-        // Crop center third of landscape image to create portrait
-        // Portrait aspect ratio is 3:4 (width:height)
         const targetAspectRatio = 3 / 4
-        
-        // Calculate dimensions for portrait crop
+
         const cropHeight = img.height
         const cropWidth = cropHeight * targetAspectRatio
-        
-        // Center crop - take middle third
+
         const cropX = (img.width - cropWidth) / 2
         const cropY = 0
 
@@ -322,11 +309,9 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
           crop: { x: cropX, y: cropY, w: cropWidth, h: cropHeight }
         })
 
-        // Set canvas to cropped portrait size
         canvas.width = cropWidth
         canvas.height = cropHeight
 
-        // Draw center portion of landscape image
         ctx.drawImage(
           img,
           cropX, cropY, cropWidth, cropHeight,
@@ -351,29 +336,23 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
           return
         }
 
-        // Calculate face frame dimensions based on screen size
-        // Frame is: min(80vw, 60vh) with 3:4 aspect ratio
         const vw = window.innerWidth
         const vh = window.innerHeight
         const frameWidth = Math.min(vw * 0.8, vh * 0.6)
         const frameHeight = frameWidth * 4 / 3
 
-        // Calculate crop area in image coordinates
-        // After rotation, image dimensions are swapped for landscape->portrait
         const scaleX = isRotated ? (img.width / vh) : (img.width / vw)
         const scaleY = isRotated ? (img.height / vw) : (img.height / vh)
 
-        // Center position of frame
         const frameCenterX = isRotated ? (vh / 2) : (vw / 2)
         const frameCenterY = isRotated ? (vw / 2) : (vh / 2)
 
-        // Crop dimensions in image coordinates
         const cropWidth = frameWidth * scaleX
         const cropHeight = frameHeight * scaleY
         const cropX = (frameCenterX - frameWidth / 2) * scaleX
         const cropY = (frameCenterY - frameHeight / 2) * scaleY
 
-        console.log('Crop params:', { 
+        console.log('Crop params:', {
           imgSize: { w: img.width, h: img.height },
           frameSize: { w: frameWidth, h: frameHeight },
           cropArea: { x: cropX, y: cropY, w: cropWidth, h: cropHeight },
@@ -458,23 +437,23 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
             base64Image = await rotateImage(base64Image, -90)
           } else {
             console.log('Processing image for tablet/kiosk')
-            
+
             // Check if image is landscape (width > height)
             const img = await new Promise<HTMLImageElement>((resolve) => {
               const image = new Image()
               image.onload = () => resolve(image)
               image.src = base64Image
             })
-            
+
             const isLandscape = img.width > img.height
             console.log('Image dimensions:', { w: img.width, h: img.height, isLandscape })
-            
+
             if (isLandscape) {
               // Crop center portion to convert landscape to portrait
               console.log('Cropping center of landscape image to portrait')
               base64Image = await cropLandscapeToPortrait(base64Image)
             }
-            
+
             // Then crop to face frame
             console.log('Cropping to face frame')
             base64Image = await cropToFaceFrame(base64Image, false)

@@ -1,15 +1,11 @@
 import * as faceapi from 'face-api.js'
 
-const MAX_IMAGE_SIZE = 1920 // Max width/height to prevent huge images
+const MAX_IMAGE_SIZE = 1920
 
-/**
- * Fix image orientation based on EXIF data and optionally resize if too large
- */
 export const resizeImage = (imageSrc: string): Promise<string> => {
     return new Promise((resolve) => {
         const img = document.createElement('img')
         img.onload = () => {
-            // Calculate scale to fit max size while maintaining aspect ratio
             let width = img.width
             let height = img.height
 
@@ -25,7 +21,6 @@ export const resizeImage = (imageSrc: string): Promise<string> => {
 
             const ctx = canvas.getContext('2d')
             if (ctx) {
-                // Draw image at original aspect ratio (not forced to square)
                 ctx.drawImage(img, 0, 0, width, height)
             }
 
@@ -91,19 +86,13 @@ export const readFileAsDataURL = (file: File): Promise<string> => {
     })
 }
 
-/**
- * Fix image orientation based on EXIF data
- * This prevents images from mobile cameras being rotated incorrectly
- */
 const fixImageOrientation = (dataUrl: string, file: File): Promise<string> => {
     return new Promise((resolve) => {
-        // Read EXIF orientation
         const reader = new FileReader()
         reader.onload = (e) => {
             const view = new DataView(e.target?.result as ArrayBuffer)
-            let orientation = 1 // default
+            let orientation = 1
 
-            // Check for JPEG EXIF data
             if (view.getUint16(0, false) !== 0xFFD8) {
                 resolve(dataUrl)
                 return

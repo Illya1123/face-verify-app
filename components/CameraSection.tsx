@@ -80,7 +80,6 @@ const CameraSection = ({
 
     return (
         <div className="space-y-5">
-            {/* Hidden mobile camera input */}
             <input
                 ref={mobileCameraInputRef}
                 type="file"
@@ -90,7 +89,6 @@ const CameraSection = ({
                 className="hidden"
             />
 
-            {/* Action button */}
             <div>
                 <button
                     type="button"
@@ -114,7 +112,6 @@ const CameraSection = ({
             {/* Desktop camera preview */}
             {!isMobile && isCameraOpen && isCameraSupported && (
                 <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 space-y-4">
-
                     <div className="flex items-center justify-between">
                         <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                             Camera preview

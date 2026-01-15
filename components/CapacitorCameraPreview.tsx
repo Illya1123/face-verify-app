@@ -39,7 +39,6 @@ const CapacitorCameraPreview = ({
     <div className="fixed inset-0 z-50">
       {/* Camera UI - Always render on top */}
       <div className="absolute inset-0 z-10 pointer-events-none">
-        {/* Top bar */}
         <div className="absolute top-0 left-0 right-0 pointer-events-auto pt-safe">
           <div className="flex justify-between items-center p-4 bg-gradient-to-b from-black/80 to-transparent">
             <button
@@ -51,7 +50,6 @@ const CapacitorCameraPreview = ({
               </svg>
               Quay lại
             </button>
-            {/* <span className="text-white font-semibold text-lg">Camera</span> */}
 
             <div className="flex items-center gap-2">
               {/* {hasMultipleCameras && (
@@ -104,25 +102,15 @@ const CapacitorCameraPreview = ({
           </div>
         </div>
 
-        {/* Center guide with face frame - Only show when camera is active */}
         {permissionGranted && isActive && (
           <>
-            {/* Dark overlay with transparent center */}
             <div className="absolute inset-0 flex items-center justify-center p-8">
               <div className="relative w-full h-full flex items-center justify-center">
-                {/* Dark overlay */}
-                {/* <div className="absolute inset-0 bg-black/50"></div> */}
-
-                {/* Transparent center hole for face frame */}
                 <div className="relative z-10">
-                  {/* Face frame with corners - responsive size based on screen */}
                   <div className="relative" style={{
                     width: 'min(80vw, 60vh)',
                     aspectRatio: '3/4'
                   }}>
-                    {/* Transparent center */}
-                    {/* <div className="absolute inset-0 border-2 rounded-lg"></div> */}
-
                     {/* Top-left corner */}
                     <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-black rounded-tl-lg"></div>
                     {/* Top-right corner */}
@@ -133,7 +121,6 @@ const CapacitorCameraPreview = ({
                     <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-black rounded-br-lg"></div>
                   </div>
 
-                  {/* Instruction text */}
                   <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 text-center whitespace-nowrap">
                     <p className="text-white text-sm font-medium drop-shadow-lg bg-black/60 px-4 py-2 rounded-lg">
                       Đưa gương mặt vào trong khung
@@ -171,7 +158,6 @@ const CapacitorCameraPreview = ({
         )}
       </div>
 
-      {/* Native camera layer - Render after UI to ensure it doesn't cover buttons */}
       {!isWebCamera && (
         <div
           id="capacitor-camera-preview"
@@ -179,7 +165,6 @@ const CapacitorCameraPreview = ({
         />
       )}
 
-      {/* Web camera video element */}
       {isWebCamera && (
         <video
           ref={videoRef}
@@ -191,7 +176,6 @@ const CapacitorCameraPreview = ({
         />
       )}
 
-      {/* Loading */}
       {isCheckingPermission && (
         <div className="absolute inset-0 z-20 flex items-center justify-center text-white bg-black">
           <div className="text-center">
@@ -201,7 +185,6 @@ const CapacitorCameraPreview = ({
         </div>
       )}
 
-      {/* Permission denied */}
       {permissionDenied && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-white px-6 bg-black">
           <div className="text-center max-w-sm">

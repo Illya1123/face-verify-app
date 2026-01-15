@@ -22,7 +22,6 @@ const Index = () => {
 
     const { modelsLoaded, modelsLoading } = useFaceModels()
 
-    // Check localStorage for captured image on mount
     useEffect(() => {
         const capturedImageFromStorage = localStorage.getItem('capturedImage')
         if (capturedImageFromStorage) {
@@ -81,8 +80,6 @@ const Index = () => {
     return (
         <Page>
             <Section>
-
-                {/* ===== Header ===== */}
                 <div className="text-center mb-4">
                     <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white">
                         Face Verification
@@ -102,10 +99,8 @@ const Index = () => {
                     </div>
                 )}
 
-                {/* ===== Mobile Layout (vertical cards) ===== */}
                 <div className="flex flex-col flex-1 gap-3">
 
-                    {/* Reference Image Card */}
                     <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden flex-1 flex flex-col">
                         <div className="p-4">
                             <div className="flex items-center justify-between mb-4">
@@ -207,7 +202,6 @@ const Index = () => {
                             ? 'bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-700'
                             : 'bg-red-50 border-red-200 dark:bg-red-900/30 dark:border-red-700'
                     }`}>
-                        {/* ===== Header ===== */}
                         <div className="mb-4">
                             <div className="flex items-center gap-2 mb-2">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
