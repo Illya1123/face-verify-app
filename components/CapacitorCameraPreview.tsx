@@ -23,6 +23,8 @@ const CapacitorCameraPreview = ({
     cameraDevices,
     currentDeviceId,
     videoRef,
+    faceDetected,
+    countdown,
     handleCapture,
     handleFlipCamera,
     handleSwitchCamera,
@@ -111,19 +113,52 @@ const CapacitorCameraPreview = ({
                     width: 'min(80vw, 60vh)',
                     aspectRatio: '3/4'
                   }}>
-                    {/* Top-left corner */}
-                    <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-black rounded-tl-lg"></div>
-                    {/* Top-right corner */}
-                    <div className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-black rounded-tr-lg"></div>
-                    {/* Bottom-left corner */}
-                    <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-black rounded-bl-lg"></div>
-                    {/* Bottom-right corner */}
-                    <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-black rounded-br-lg"></div>
+                    {/* Corners with dynamic color based on face detection */}
+                    <div className={`absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 rounded-tl-lg transition-colors ${
+                      faceDetected ? 'border-green-500' : 'border-white'
+                    }`}></div>
+                    <div className={`absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 rounded-tr-lg transition-colors ${
+                      faceDetected ? 'border-green-500' : 'border-white'
+                    }`}></div>
+                    <div className={`absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 rounded-bl-lg transition-colors ${
+                      faceDetected ? 'border-green-500' : 'border-white'
+                    }`}></div>
+                    <div className={`absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 rounded-br-lg transition-colors ${
+                      faceDetected ? 'border-green-500' : 'border-white'
+                    }`}></div>
+
+                    {/* Countdown display - always visible when countdown is active */}
+                    {countdown !== null && (
+                      <div className="absolute inset-0 flex items-center justify-center z-20">
+                        <div className="bg-green-500 text-white rounded-full w-32 h-32 flex flex-col items-center justify-center shadow-2xl border-4 border-white">
+                          <span className="text-6xl font-bold animate-pulse">{countdown}</span>
+                          {countdown === 0 && (
+                            <span className="text-sm mt-1">Chụp!</span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Debug info - show detection status */}
+                    <div className="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded z-30 space-y-1">
+                      <div>{isWebCamera ? '🌐 Web' : '📱 Native'} • {faceDetected ? '✅ Phát hiện mặt' : '❌ Không có mặt'}</div>
+                      <div>Countdown: {countdown !== null ? `${countdown}s` : 'null'}</div>
+                      <div>isCapturing: {isCapturing ? 'true' : 'false'}</div>
+                    </div>
                   </div>
 
                   <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 text-center whitespace-nowrap">
-                    <p className="text-white text-sm font-medium drop-shadow-lg bg-black/60 px-4 py-2 rounded-lg">
-                      Đưa gương mặt vào trong khung
+                    <p className={`text-sm font-medium drop-shadow-lg px-4 py-2 rounded-lg transition-colors ${
+                      faceDetected
+                        ? 'text-green-400 bg-green-900/80'
+                        : 'text-white bg-black/60'
+                    }`}>
+                      {countdown !== null && countdown > 0
+                        ? `Đang chụp trong ${countdown} giây...`
+                        : faceDetected
+                          ? '✓ Khuôn mặt đã được phát hiện'
+                          : 'Đưa gương mặt vào trong khung'
+                      }
                     </p>
                   </div>
                 </div>
@@ -135,8 +170,8 @@ const CapacitorCameraPreview = ({
               <div className="flex justify-center items-center p-8 bg-gradient-to-t from-black/80 to-transparent">
                 <button
                   onClick={handleCapture}
-                  disabled={isCapturing}
-                  className={`relative w-20 h-20 rounded-full bg-white hover:bg-gray-100 transition-all duration-200 active:scale-95 shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed ${isCapturing ? 'pointer-events-none' : ''}`}
+                  disabled={isCapturing || countdown !== null}
+                  className={`relative w-20 h-20 rounded-full bg-white hover:bg-gray-100 transition-all duration-200 active:scale-95 shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed ${isCapturing || countdown !== null ? 'pointer-events-none' : ''}`}
                   title="Chụp ảnh"
                 >
                   {isCapturing ? (
