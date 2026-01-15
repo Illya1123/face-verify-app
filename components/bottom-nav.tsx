@@ -1,44 +1,88 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
+import { Capacitor } from '@capacitor/core'
+import { useEffect, useState } from 'react'
 
 const BottomNav = () => {
     const router = useRouter()
+    const [isNative, setIsNative] = useState(true)
+
+    useEffect(() => {
+        setIsNative(Capacitor.isNativePlatform())
+    }, [])
 
     return (
         <nav className="fixed bottom-0 left-0 right-0 w-full border-t bg-white pb-safe dark:border-zinc-800 dark:bg-zinc-900 z-50">
             <div className="flex h-16 items-center justify-around px-6 relative">
-                {links.map(({ href, label, icon, isCenter }) => (
-                    <Link
-                        key={label}
-                        href={href}
-                        className={`flex h-full flex-col items-center justify-center space-y-1 ${
-                            isCenter
-                                ? 'absolute left-1/2 -translate-x-1/2 -top-4'
-                                : 'flex-1'
-                        }`}
-                    >
-                        {isCenter ? (
-                            <div className="flex flex-col items-center">
-                                <div className="w-16 h-16 rounded-full bg-indigo-600 dark:bg-indigo-500 flex items-center justify-center shadow-lg">
-                                    {icon}
-                                </div>
+                {links.map(({ href, label, icon, isCenter }) => {
+                    const isCameraButton = href === '/camera'
+                    const isDisabled = isCameraButton && !isNative
+
+                    if (isDisabled) {
+                        // Render disabled camera button
+                        return (
+                            <div
+                                key={label}
+                                className={`flex h-full flex-col items-center justify-center space-y-1 opacity-50 cursor-not-allowed ${
+                                    isCenter
+                                        ? 'absolute left-1/2 -translate-x-1/2 -top-4'
+                                        : 'flex-1'
+                                }`}
+                                title="Camera chỉ khả dụng trên ứng dụng di động"
+                            >
+                                {isCenter ? (
+                                    <div className="flex flex-col items-center">
+                                        <div className="w-16 h-16 rounded-full bg-gray-400 dark:bg-gray-600 flex items-center justify-center shadow-lg">
+                                            {icon}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="text-gray-400 dark:text-gray-600">
+                                            {icon}
+                                        </div>
+                                        <span className="text-xs text-gray-400 dark:text-gray-600">
+                                            {label}
+                                        </span>
+                                    </>
+                                )}
                             </div>
-                        ) : (
-                            <>
-                                <div className={router.pathname === href
-                                    ? 'text-indigo-600 dark:text-indigo-400'
-                                    : 'text-zinc-600 dark:text-zinc-400'}>
-                                    {icon}
+                        )
+                    }
+
+                    return (
+                        <Link
+                            key={label}
+                            href={href}
+                            className={`flex h-full flex-col items-center justify-center space-y-1 ${
+                                isCenter
+                                    ? 'absolute left-1/2 -translate-x-1/2 -top-4'
+                                    : 'flex-1'
+                            }`}
+                        >
+                            {isCenter ? (
+                                <div className="flex flex-col items-center">
+                                    <div className="w-16 h-16 rounded-full bg-indigo-600 dark:bg-indigo-500 flex items-center justify-center shadow-lg">
+                                        {icon}
+                                    </div>
                                 </div>
-                                <span className={`text-xs ${router.pathname === href
-                                    ? 'text-indigo-600 dark:text-indigo-400'
-                                    : 'text-zinc-600 dark:text-zinc-400'}`}>
-                                    {label}
-                                </span>
-                            </>
-                        )}
-                    </Link>
-                ))}
+                            ) : (
+                                <>
+                                    <div className={router.pathname === href
+                                        ? 'text-indigo-600 dark:text-indigo-400'
+                                        : 'text-zinc-600 dark:text-zinc-400'}>
+                                        {icon}
+                                    </div>
+                                    <span className={`text-xs ${router.pathname === href
+                                        ? 'text-indigo-600 dark:text-indigo-400'
+                                        : 'text-zinc-600 dark:text-zinc-400'}`}>
+                                        {label}
+                                    </span>
+                                </>
+                            )}
+                        </Link>
+                    )
+                })}
             </div>
         </nav>
     )
