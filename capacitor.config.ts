@@ -12,6 +12,11 @@ const config: CapacitorConfig = {
     allowMixedContent: true,
     webContentsDebuggingEnabled: true,
   },
+	plugins: {
+    ScreenOrientation: {
+      orientation: 'portrait',
+    },
+  },
 };
 
 export default config;

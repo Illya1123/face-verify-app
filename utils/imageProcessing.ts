@@ -1,27 +1,35 @@
 import * as faceapi from 'face-api.js'
-import { RESIZE_WIDTH, RESIZE_HEIGHT } from '@/constants/faceVerification'
+
+const MAX_IMAGE_SIZE = 1920 // Max width/height to prevent huge images
 
 /**
- * Resize image to a standard size while maintaining aspect ratio
+ * Fix image orientation based on EXIF data and optionally resize if too large
  */
 export const resizeImage = (imageSrc: string): Promise<string> => {
     return new Promise((resolve) => {
         const img = document.createElement('img')
         img.onload = () => {
+            // Calculate scale to fit max size while maintaining aspect ratio
+            let width = img.width
+            let height = img.height
+
+            if (width > MAX_IMAGE_SIZE || height > MAX_IMAGE_SIZE) {
+                const scale = Math.min(MAX_IMAGE_SIZE / width, MAX_IMAGE_SIZE / height)
+                width = Math.floor(width * scale)
+                height = Math.floor(height * scale)
+            }
+
             const canvas = document.createElement('canvas')
-            canvas.width = RESIZE_WIDTH
-            canvas.height = RESIZE_HEIGHT
+            canvas.width = width
+            canvas.height = height
 
             const ctx = canvas.getContext('2d')
             if (ctx) {
-                // Draw image with aspect ratio maintained
-                const scale = Math.max(RESIZE_WIDTH / img.width, RESIZE_HEIGHT / img.height)
-                const x = RESIZE_WIDTH / 2 - (img.width / 2) * scale
-                const y = RESIZE_HEIGHT / 2 - (img.height / 2) * scale
-                ctx.drawImage(img, x, y, img.width * scale, img.height * scale)
+                // Draw image at original aspect ratio (not forced to square)
+                ctx.drawImage(img, 0, 0, width, height)
             }
 
-            resolve(canvas.toDataURL('image/jpeg', 0.9))
+            resolve(canvas.toDataURL('image/jpeg', 0.92))
         }
         img.src = imageSrc
     })
@@ -72,8 +80,124 @@ export const drawLandmarksOnImage = async (
 export const readFileAsDataURL = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader()
-        reader.onload = () => resolve(reader.result as string)
+        reader.onload = async () => {
+            const dataUrl = reader.result as string
+            // Fix EXIF orientation
+            const correctedDataUrl = await fixImageOrientation(dataUrl, file)
+            resolve(correctedDataUrl)
+        }
         reader.onerror = reject
         reader.readAsDataURL(file)
+    })
+}
+
+/**
+ * Fix image orientation based on EXIF data
+ * This prevents images from mobile cameras being rotated incorrectly
+ */
+const fixImageOrientation = (dataUrl: string, file: File): Promise<string> => {
+    return new Promise((resolve) => {
+        // Read EXIF orientation
+        const reader = new FileReader()
+        reader.onload = (e) => {
+            const view = new DataView(e.target?.result as ArrayBuffer)
+            let orientation = 1 // default
+
+            // Check for JPEG EXIF data
+            if (view.getUint16(0, false) !== 0xFFD8) {
+                resolve(dataUrl)
+                return
+            }
+
+            const length = view.byteLength
+            let offset = 2
+
+            while (offset < length) {
+                if (view.getUint16(offset + 2, false) <= 8) break
+                const marker = view.getUint16(offset, false)
+                offset += 2
+
+                if (marker === 0xFFE1) {
+                    // EXIF marker
+                    const littleEndian = view.getUint16(offset + 8, false) === 0x4949
+                    offset += 10
+
+                    // Read orientation tag
+                    const tags = view.getUint16(offset, littleEndian)
+                    offset += 2
+
+                    for (let i = 0; i < tags; i++) {
+                        const tag = view.getUint16(offset + i * 12, littleEndian)
+                        if (tag === 0x0112) {
+                            // Orientation tag
+                            orientation = view.getUint16(offset + i * 12 + 8, littleEndian)
+                            break
+                        }
+                    }
+                    break
+                } else {
+                    offset += view.getUint16(offset, false)
+                }
+            }
+
+            // Apply orientation correction
+            if (orientation === 1) {
+                resolve(dataUrl)
+                return
+            }
+
+            const img = document.createElement('img')
+            img.onload = () => {
+                const canvas = document.createElement('canvas')
+                const ctx = canvas.getContext('2d')
+                if (!ctx) {
+                    resolve(dataUrl)
+                    return
+                }
+
+                let width = img.width
+                let height = img.height
+
+                // Set canvas size based on orientation
+                if (orientation >= 5 && orientation <= 8) {
+                    canvas.width = height
+                    canvas.height = width
+                } else {
+                    canvas.width = width
+                    canvas.height = height
+                }
+
+                // Apply transformations
+                switch (orientation) {
+                    case 2:
+                        ctx.transform(-1, 0, 0, 1, width, 0)
+                        break
+                    case 3:
+                        ctx.transform(-1, 0, 0, -1, width, height)
+                        break
+                    case 4:
+                        ctx.transform(1, 0, 0, -1, 0, height)
+                        break
+                    case 5:
+                        ctx.transform(0, 1, 1, 0, 0, 0)
+                        break
+                    case 6:
+                        ctx.transform(0, 1, -1, 0, height, 0)
+                        break
+                    case 7:
+                        ctx.transform(0, -1, -1, 0, height, width)
+                        break
+                    case 8:
+                        ctx.transform(0, -1, 1, 0, 0, width)
+                        break
+                }
+
+                ctx.drawImage(img, 0, 0)
+                resolve(canvas.toDataURL('image/jpeg', 0.92))
+            }
+            img.src = dataUrl
+        }
+
+        reader.readAsArrayBuffer(file)
     })
 }

@@ -149,7 +149,7 @@ const CapacitorCameraPreview = ({
                 <button
                   onClick={handleCapture}
                   disabled={isCapturing}
-                  className="relative w-20 h-20 rounded-full bg-white hover:bg-gray-100 transition-all duration-200 active:scale-95 shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`relative w-20 h-20 rounded-full bg-white hover:bg-gray-100 transition-all duration-200 active:scale-95 shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed ${isCapturing ? 'pointer-events-none' : ''}`}
                   title="Chụp ảnh"
                 >
                   {isCapturing ? (

@@ -1,6 +1,4 @@
 import Head from 'next/head'
-import { useEffect, useState } from 'react'
-import { Capacitor } from '@capacitor/core'
 import Appbar from '@/components/appbar'
 import BottomNav from '@/components/bottom-nav'
 
@@ -10,20 +8,6 @@ interface Props {
 }
 
 const Page = ({ title, children }: Props) => {
-    const [isMobileApp, setIsMobileApp] = useState(false)
-    const [forceMobileMode, setForceMobileMode] = useState(false)
-
-    useEffect(() => {
-        const platform = Capacitor.getPlatform()
-        setIsMobileApp(platform === 'android' || platform === 'ios')
-
-        // Check if user forced mobile mode in settings
-        const savedMode = localStorage.getItem('forceMobileMode')
-        setForceMobileMode(savedMode === 'true')
-    }, [])
-
-    const shouldUseMobileLayout = isMobileApp || forceMobileMode
-
     return (
         <>
             {title ? (
@@ -32,22 +16,16 @@ const Page = ({ title, children }: Props) => {
                 </Head>
             ) : null}
 
-            <Appbar />
+            {/* <Appbar /> */}
 
             <main
                 /**
-                 * Padding top = `appbar` height
-                 * Padding bottom = `bottom-nav` height
-                 * Mobile app or forced mobile mode: always use mobile layout (pb-16, max-w-md)
-                 * Web: responsive (sm:pb-0, max-w-screen-md)
+                 * Full width mobile layout with safe areas
                  */
-                className={`mx-auto pt-20 pb-16 px-safe ${
-                    shouldUseMobileLayout
-                        ? 'max-w-md'
-                        : 'max-w-screen-md sm:pb-0'
-                }`}
+                className="w-full min-h-screen flex flex-col pt-safe pb-safe"
+                style={{ paddingBottom: 'calc(4rem + env(safe-area-inset-bottom))' }}
             >
-                <div className="p-6">{children}</div>
+                <div className="flex-1 px-4 py-4 sm:px-6">{children}</div>
             </main>
 
             <BottomNav />

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import { Capacitor } from '@capacitor/core'
 import Page from '@/components/page'
 import Section from '@/components/section'
 import ImageSelector from '@/components/ImageSelector'
@@ -20,22 +19,8 @@ const Index = () => {
     const [isCameraOpen, setIsCameraOpen] = useState(false)
     const [referenceWithLandmarks, setReferenceWithLandmarks] = useState<string | null>(null)
     const [capturedWithLandmarks, setCapturedWithLandmarks] = useState<string | null>(null)
-    const [isMobileMode, setIsMobileMode] = useState(false)
 
     const { modelsLoaded, modelsLoading } = useFaceModels()
-
-    // Detect if running on Android/iOS to force mobile layout
-    useEffect(() => {
-        const platform = Capacitor.getPlatform()
-        // Force mobile layout for native apps (Android/iOS)
-        // Web platform will use responsive design (md: breakpoints)
-        const isNativeApp = platform === 'android' || platform === 'ios'
-
-        // Check if user forced mobile mode in settings
-        const forcedMode = localStorage.getItem('forceMobileMode') === 'true'
-
-        setIsMobileMode(isNativeApp || forcedMode)
-    }, [])
 
     // Check localStorage for captured image on mount
     useEffect(() => {
@@ -98,11 +83,11 @@ const Index = () => {
             <Section>
 
                 {/* ===== Header ===== */}
-                <div className={`text-center md:max-w-2xl md:mx-auto ${isMobileMode ? 'mb-[2vh]' : 'mb-6 md:mb-10'}`}>
-                    <h1 className="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white">
+                <div className="text-center mb-4">
+                    <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white">
                         Face Verification
                     </h1>
-                    <p className="mt-2 text-gray-600 dark:text-gray-400 text-sm">
+                    <p className="mt-2 text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
                         So sánh ảnh tham chiếu và ảnh chụp trực tiếp để xác minh danh tính
                     </p>
                 </div>
@@ -117,47 +102,12 @@ const Index = () => {
                     </div>
                 )}
 
-                {/* ===== Desktop Layout (2 columns) - Only for Web ===== */}
-                {!isMobileMode && (
-                    <div className="hidden md:grid md:grid-cols-2 gap-8">
-
-                    {/* Step 1 */}
-                    <div className="rounded-lg border bg-white dark:bg-gray-800 dark:border-gray-700 p-6">
-                        <h3 className="text-base font-medium text-gray-900 dark:text-white mb-1">
-                            Bước 1: Ảnh tham chiếu
-                        </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                            Chọn một ảnh rõ mặt, nhìn thẳng, không che khuôn mặt
-                        </p>
-                        <ImageSelector onImageSelect={handleReferenceImageSelect} />
-                        <ImagePreview capturedImage={referenceImage} />
-                    </div>
-
-                    {/* Step 2 */}
-                    <div className="rounded-lg border bg-white dark:bg-gray-800 dark:border-gray-700 p-6">
-                        <h3 className="text-base font-medium text-gray-900 dark:text-white mb-1">
-                            Bước 2: Ảnh xác minh
-                        </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                            Chụp ảnh trực tiếp từ camera để xác minh
-                        </p>
-                        <CameraSection
-                            isCameraOpen={isCameraOpen}
-                            setIsCameraOpen={setIsCameraOpen}
-                            onImageCapture={handleCaptureImage}
-                            onMobileImageSelect={handleMobileCapture}
-                        />
-                        <ImagePreview capturedImage={capturedImage} rotate={true} />
-                    </div>
-                </div>
-                )}
-
                 {/* ===== Mobile Layout (vertical cards) ===== */}
-                <div className={isMobileMode ? 'flex flex-col' : 'md:hidden space-y-4'} style={isMobileMode ? { gap: '1.5vh' } : undefined}>
+                <div className="flex flex-col flex-1 gap-3">
 
                     {/* Reference Image Card */}
-                    <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden" style={isMobileMode ? { minHeight: '30vh' } : undefined}>
-                        <div className={isMobileMode ? 'p-4' : 'p-5'}>
+                    <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden flex-1 flex flex-col">
+                        <div className="p-4">
                             <div className="flex items-center justify-between mb-4">
                                 <div>
                                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -183,8 +133,8 @@ const Index = () => {
                     </div>
 
                     {/* Camera/Verification Card */}
-                    <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden" style={isMobileMode ? { minHeight: '30vh' } : undefined}>
-                        <div className={isMobileMode ? 'p-4' : 'p-5'}>
+                    <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden flex-1 flex flex-col">
+                        <div className="p-4">
                             <div className="flex items-center justify-between mb-4">
                                 <div>
                                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -209,7 +159,7 @@ const Index = () => {
                             />
                             {capturedImage && (
                                 <div className="mt-4">
-                                    <ImagePreview capturedImage={capturedImage} rotate={true} />
+                                    <ImagePreview capturedImage={capturedImage}/>
                                 </div>
                             )}
                         </div>
@@ -230,9 +180,8 @@ const Index = () => {
                             disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none
                             transition-all
                             flex items-center justify-center gap-2
-                        "
-                        style={isMobileMode ? { minHeight: '7vh', paddingTop: '1.5vh', paddingBottom: '1.5vh' } : { paddingTop: '1rem', paddingBottom: '1rem' }}
-                    >
+                            py-4 min-h-[56px]
+                        ">
                         {isComparing ? (
                             <>
                                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -249,35 +198,15 @@ const Index = () => {
                     </button>
                 </div>
 
-                {/* ===== Action - Desktop - Only for Web ===== */}
-                {!isMobileMode && (
-                    <div className="hidden md:block mt-10 text-center">
-                    <button
-                        onClick={compareFaces}
-                        disabled={!referenceImage || !capturedImage || !modelsLoaded || isComparing}
-                        className="
-                            inline-flex items-center justify-center
-                            px-8 py-3
-                            rounded-md
-                            bg-blue-600 text-white
-                            text-sm font-medium
-                            hover:bg-blue-700
-                            disabled:opacity-50 disabled:cursor-not-allowed
-                            transition-colors
-                        "
-                    >
-                        {isComparing ? 'Đang so sánh…' : 'So sánh khuôn mặt'}
-                    </button>
-                </div>
-                )}
+
 
                 {/* ===== Result ===== */}
                 {comparisonResult && (
-                    <div className={`rounded-2xl md:rounded-xl border ${isMobileMode ? 'p-4' : 'p-5 md:p-6'} ${
+                    <div className={`rounded-2xl border p-4 mt-4 ${
                         comparisonResult.includes('Cùng một người')
                             ? 'bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-700'
                             : 'bg-red-50 border-red-200 dark:bg-red-900/30 dark:border-red-700'
-                    }`} style={isMobileMode ? { marginTop: '2vh' } : { marginTop: '1.5rem' }}>
+                    }`}>
                         {/* ===== Header ===== */}
                         <div className="mb-4">
                             <div className="flex items-center gap-2 mb-2">
@@ -296,7 +225,7 @@ const Index = () => {
                                         </svg>
                                     )}
                                 </div>
-                                <h3 className={`text-base md:text-base font-semibold ${
+                                <h3 className={`text-base font-semibold ${
                                     comparisonResult.includes('Cùng một người')
                                         ? 'text-green-800 dark:text-green-200'
                                         : 'text-red-800 dark:text-red-200'
@@ -310,7 +239,7 @@ const Index = () => {
                         </div>
 
                         {/* ===== Result text ===== */}
-                        <div className={`rounded-xl md:rounded-lg px-4 py-3 text-sm whitespace-pre-line ${
+                        <div className={`rounded-xl px-4 py-3 text-sm whitespace-pre-line ${
                             comparisonResult.includes('Cùng một người')
                                 ? 'bg-green-100 text-green-900 dark:bg-green-800/40 dark:text-green-100'
                                 : 'bg-red-100 text-red-900 dark:bg-red-800/40 dark:text-red-100'
@@ -329,12 +258,12 @@ const Index = () => {
                                         </h4>
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                                    <div className="grid grid-cols-1 gap-4">
                                         <div className="space-y-2">
                                             <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
                                                 Ảnh tham chiếu
                                             </p>
-                                            <div className="rounded-xl md:rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                                            <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                                                 <Image
                                                     src={referenceWithLandmarks}
                                                     alt="Reference landmarks"
@@ -350,7 +279,7 @@ const Index = () => {
                                             <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
                                                 Ảnh xác minh
                                             </p>
-                                            <div className="rounded-xl md:rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                                            <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                                                 <Image
                                                     src={capturedWithLandmarks}
                                                     alt="Captured landmarks"

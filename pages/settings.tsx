@@ -8,27 +8,10 @@ import { useTheme } from 'next-themes'
 const Settings = () => {
     const { resolvedTheme, setTheme } = useTheme()
     const [mounted, setMounted] = useState(false)
-    const [forceMobileMode, setForceMobileMode] = useState(true)
 
     useEffect(() => {
         setMounted(true)
-        const savedMode = localStorage.getItem('forceMobileMode')
-        // Default to true if not set
-        if (savedMode === null) {
-            localStorage.setItem('forceMobileMode', 'true')
-            setForceMobileMode(true)
-        } else {
-            setForceMobileMode(savedMode === 'true')
-        }
     }, [])
-
-    const handleMobileModeToggle = () => {
-        const newMode = !forceMobileMode
-        setForceMobileMode(newMode)
-        localStorage.setItem('forceMobileMode', String(newMode))
-        // Reload to apply changes
-        window.location.reload()
-    }
 
     if (!mounted) return null
 
@@ -57,30 +40,6 @@ const Settings = () => {
                             <span className="font-semibold">{isDark ? 'On' : 'Off'}</span>
                         </span>
                     </label>
-                </div>
-
-                <div className="mt-6">
-                    <h3 className="font-medium mb-2">Display Mode</h3>
-
-                    <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                            type="checkbox"
-                            className="sr-only peer"
-                            checked={forceMobileMode}
-                            onChange={handleMobileModeToggle}
-                        />
-
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-
-                        <span className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">
-                            Force Mobile Mode:{' '}
-                            <span className="font-semibold">{forceMobileMode ? 'On' : 'Off'}</span>
-                        </span>
-                    </label>
-
-                    <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                        Khi bật, giao diện sẽ luôn hiển thị như trên điện thoại với width giới hạn
-                    </p>
                 </div>
             </Section>
 

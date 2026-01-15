@@ -23,6 +23,7 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
   const startedRef = useRef(false)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  const capturingRef = useRef(false)
 
   const [isActive, setIsActive] = useState(false)
   const [isCapturing, setIsCapturing] = useState(false)
@@ -34,11 +35,28 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
   const [cameraDevices, setCameraDevices] = useState<CameraDevice[]>([])
   const [currentDeviceId, setCurrentDeviceId] = useState<string>('')
   const [isWebCamera, setIsWebCamera] = useState(false)
+  const [needsRotation, setNeedsRotation] = useState(false)
 
   /* =========================
      LIFECYCLE
      ========================= */
   useEffect(() => {
+    // Detect if device needs rotation correction
+    // Phones typically need rotation, but tablet/kiosk devices don't
+    const detectDeviceType = () => {
+      const userAgent = navigator.userAgent.toLowerCase()
+      const isPhone = /mobile|android.*mobile|iphone|ipod/.test(userAgent) &&
+                      !/tablet|ipad/.test(userAgent)
+
+      // Additional check: screen size - phones usually have smaller screens
+      const screenSize = Math.min(window.screen.width, window.screen.height)
+      const isSmallScreen = screenSize < 768 // Less than tablet size
+
+      console.log('Device detection:', { userAgent, isPhone, screenSize, isSmallScreen })
+      setNeedsRotation(isPhone && isSmallScreen)
+    }
+
+    detectDeviceType()
     initCamera()
 
     return () => {
@@ -257,6 +275,7 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
     }
   }
 
+
   const stopCameraSafe = async () => {
     try {
       if (startedRef.current) {
@@ -274,46 +293,152 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
   /* =========================
      IMAGE PROCESSING
      ========================= */
-  // const rotateImage = (base64Image: string, degrees: number): Promise<string> => {
-  //   return new Promise((resolve) => {
-  //     const img = new Image()
-  //     img.onload = () => {
-  //       const canvas = document.createElement('canvas')
-  //       const ctx = canvas.getContext('2d')
+  const cropLandscapeToPortrait = (base64Image: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
 
-  //       if (!ctx) {
-  //         resolve(base64Image)
-  //         return
-  //       }
+        if (!ctx) {
+          resolve(base64Image)
+          return
+        }
 
-  //       // Set canvas size based on rotation
-  //       if (degrees === 90 || degrees === 270) {
-  //         canvas.width = img.height
-  //         canvas.height = img.width
-  //       } else {
-  //         canvas.width = img.width
-  //         canvas.height = img.height
-  //       }
+        // Crop center third of landscape image to create portrait
+        // Portrait aspect ratio is 3:4 (width:height)
+        const targetAspectRatio = 3 / 4
+        
+        // Calculate dimensions for portrait crop
+        const cropHeight = img.height
+        const cropWidth = cropHeight * targetAspectRatio
+        
+        // Center crop - take middle third
+        const cropX = (img.width - cropWidth) / 2
+        const cropY = 0
 
-  //       // Rotate and draw
-  //       ctx.translate(canvas.width / 2, canvas.height / 2)
-  //       ctx.rotate((degrees * Math.PI) / 180)
-  //       ctx.drawImage(img, -img.width / 2, -img.height / 2)
+        console.log('Landscape to portrait crop:', {
+          original: { w: img.width, h: img.height },
+          crop: { x: cropX, y: cropY, w: cropWidth, h: cropHeight }
+        })
 
-  //       resolve(canvas.toDataURL('image/jpeg', 0.9))
-  //     }
-  //     img.src = base64Image
-  //   })
-  // }
+        // Set canvas to cropped portrait size
+        canvas.width = cropWidth
+        canvas.height = cropHeight
+
+        // Draw center portion of landscape image
+        ctx.drawImage(
+          img,
+          cropX, cropY, cropWidth, cropHeight,
+          0, 0, cropWidth, cropHeight
+        )
+
+        resolve(canvas.toDataURL('image/jpeg', 0.92))
+      }
+      img.src = base64Image
+    })
+  }
+
+  const cropToFaceFrame = (base64Image: string, isRotated: boolean = false): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+
+        if (!ctx) {
+          resolve(base64Image)
+          return
+        }
+
+        // Calculate face frame dimensions based on screen size
+        // Frame is: min(80vw, 60vh) with 3:4 aspect ratio
+        const vw = window.innerWidth
+        const vh = window.innerHeight
+        const frameWidth = Math.min(vw * 0.8, vh * 0.6)
+        const frameHeight = frameWidth * 4 / 3
+
+        // Calculate crop area in image coordinates
+        // After rotation, image dimensions are swapped for landscape->portrait
+        const scaleX = isRotated ? (img.width / vh) : (img.width / vw)
+        const scaleY = isRotated ? (img.height / vw) : (img.height / vh)
+
+        // Center position of frame
+        const frameCenterX = isRotated ? (vh / 2) : (vw / 2)
+        const frameCenterY = isRotated ? (vw / 2) : (vh / 2)
+
+        // Crop dimensions in image coordinates
+        const cropWidth = frameWidth * scaleX
+        const cropHeight = frameHeight * scaleY
+        const cropX = (frameCenterX - frameWidth / 2) * scaleX
+        const cropY = (frameCenterY - frameHeight / 2) * scaleY
+
+        console.log('Crop params:', { 
+          imgSize: { w: img.width, h: img.height },
+          frameSize: { w: frameWidth, h: frameHeight },
+          cropArea: { x: cropX, y: cropY, w: cropWidth, h: cropHeight },
+          isRotated
+        })
+
+        // Set canvas to cropped size
+        canvas.width = cropWidth
+        canvas.height = cropHeight
+
+        // Draw cropped image
+        ctx.drawImage(
+          img,
+          cropX, cropY, cropWidth, cropHeight,
+          0, 0, cropWidth, cropHeight
+        )
+
+        resolve(canvas.toDataURL('image/jpeg', 0.92))
+      }
+      img.src = base64Image
+    })
+  }
+
+  const rotateImage = (base64Image: string, degrees: number): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+
+        if (!ctx) {
+          resolve(base64Image)
+          return
+        }
+
+        // Set canvas size based on rotation
+        if (degrees === 90 || degrees === 270) {
+          canvas.width = img.height
+          canvas.height = img.width
+        } else {
+          canvas.width = img.width
+          canvas.height = img.height
+        }
+
+        // Rotate and draw
+        ctx.translate(canvas.width / 2, canvas.height / 2)
+        ctx.rotate((degrees * Math.PI) / 180)
+        ctx.drawImage(img, -img.width / 2, -img.height / 2)
+
+        resolve(canvas.toDataURL('image/jpeg', 0.9))
+      }
+      img.src = base64Image
+    })
+  }
 
   /* =========================
      ACTIONS
      ========================= */
   const handleCapture = async () => {
-    if (!permissionGranted || !isActive) return
+    if (!permissionGranted || !isActive || capturingRef.current) return
+
+    capturingRef.current = true
+    setIsCapturing(true)
 
     try {
-      setIsCapturing(true)
 
       if (isWebCamera) {
         // Capture from web camera
@@ -325,7 +450,36 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
         })
 
         if (result?.value) {
-          const base64Image = `data:image/jpeg;base64,${result.value}`
+          let base64Image = `data:image/jpeg;base64,${result.value}`
+
+          // Only rotate on phones, crop center for tablets/kiosk
+          if (needsRotation) {
+            console.log('Rotating image -90 degrees (phone detected)')
+            base64Image = await rotateImage(base64Image, -90)
+          } else {
+            console.log('Processing image for tablet/kiosk')
+            
+            // Check if image is landscape (width > height)
+            const img = await new Promise<HTMLImageElement>((resolve) => {
+              const image = new Image()
+              image.onload = () => resolve(image)
+              image.src = base64Image
+            })
+            
+            const isLandscape = img.width > img.height
+            console.log('Image dimensions:', { w: img.width, h: img.height, isLandscape })
+            
+            if (isLandscape) {
+              // Crop center portion to convert landscape to portrait
+              console.log('Cropping center of landscape image to portrait')
+              base64Image = await cropLandscapeToPortrait(base64Image)
+            }
+            
+            // Then crop to face frame
+            console.log('Cropping to face frame')
+            base64Image = await cropToFaceFrame(base64Image, false)
+          }
+
           onCapture(base64Image)
         }
 
@@ -334,6 +488,7 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
     } catch (err) {
       console.error('Capture error:', err)
     } finally {
+      capturingRef.current = false
       setIsCapturing(false)
     }
   }
@@ -342,34 +497,28 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
     if (!videoRef.current) return
 
     try {
-      const canvas = document.createElement('canvas')
       const video = videoRef.current
+      const canvas = document.createElement('canvas')
 
-      // Swap width and height for 90-degree rotation
-      canvas.width = video.videoHeight
-      canvas.height = video.videoWidth
+      // Keep original aspect ratio (3:4 portrait)
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
 
       const ctx = canvas.getContext('2d')
-      if (ctx) {
-        // Rotate 90 degrees counter-clockwise (-90 degrees)
-        ctx.translate(0, canvas.height)
-        ctx.rotate(-Math.PI / 2)
+      if (!ctx) return
 
-        // Mirror the image horizontally to match the preview
-        ctx.translate(video.videoWidth, 0)
-        ctx.scale(-1, 1)
+      // Draw directly without mirroring to get correct orientation
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
 
-        ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight)
-
-        const base64Image = canvas.toDataURL('image/jpeg', 0.9)
-        onCapture(base64Image)
-      }
+      const base64Image = canvas.toDataURL('image/jpeg', 0.9)
+      onCapture(base64Image)
 
       stopWebCamera()
     } catch (err) {
       console.error('Capture from web camera error:', err)
     }
   }
+
 
   const handleFlipCamera = async () => {
     try {
