@@ -68,7 +68,7 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
     capturingRef
   )
 
-  const { faceDetected, countdown } = faceDetection
+  const { faceDetected } = faceDetection
 
   // Initialize camera on mount
   useEffect(() => {
@@ -116,7 +116,6 @@ export const useCameraPreview = ({ onCapture, onClose }: UseCameraPreviewProps) 
     currentDeviceId,
     videoRef,
     faceDetected,
-    countdown,
     // Actions
     handleCapture,
     handleFlipCamera,

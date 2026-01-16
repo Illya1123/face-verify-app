@@ -24,7 +24,6 @@ const CapacitorCameraPreview = ({
     currentDeviceId,
     videoRef,
     faceDetected,
-    countdown,
     handleCapture,
     handleFlipCamera,
     handleSwitchCamera,
@@ -127,18 +126,6 @@ const CapacitorCameraPreview = ({
                       faceDetected ? 'border-green-500' : 'border-white'
                     }`}></div>
 
-                    {/* Countdown display - always visible when countdown is active */}
-                    {countdown !== null && (
-                      <div className="absolute inset-0 flex items-center justify-center z-20">
-                        <div className="bg-green-500 text-white rounded-full w-32 h-32 flex flex-col items-center justify-center shadow-2xl border-4 border-white">
-                          <span className="text-6xl font-bold animate-pulse">{countdown}</span>
-                          {countdown === 0 && (
-                            <span className="text-sm mt-1">Chụp!</span>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
                     {/* Debug info - show detection status */}
                     {/* <div className="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded z-30 space-y-1">
                       <div>{isWebCamera ? '🌐 Web' : '📱 Native'} • {faceDetected ? '✅ Phát hiện mặt' : '❌ Không có mặt'}</div>
@@ -153,11 +140,9 @@ const CapacitorCameraPreview = ({
                         ? 'text-green-400 bg-green-900/80'
                         : 'text-white bg-black/60'
                     }`}>
-                      {countdown !== null && countdown > 0
-                        ? `Đang chụp trong ${countdown} giây...`
-                        : faceDetected
-                          ? '✓ Khuôn mặt đã được phát hiện'
-                          : 'Đưa gương mặt vào trong khung'
+                      {faceDetected
+                        ? '✓ Khuôn mặt đã được phát hiện'
+                        : 'Đưa gương mặt vào trong khung'
                       }
                     </p>
                   </div>
@@ -170,8 +155,8 @@ const CapacitorCameraPreview = ({
               <div className="flex justify-center items-center p-8 bg-gradient-to-t from-black/80 to-transparent">
                 <button
                   onClick={handleCapture}
-                  disabled={isCapturing || countdown !== null}
-                  className={`relative w-20 h-20 rounded-full bg-white hover:bg-gray-100 transition-all duration-200 active:scale-95 shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed ${isCapturing || countdown !== null ? 'pointer-events-none' : ''}`}
+                  disabled={isCapturing}
+                  className={`relative w-20 h-20 rounded-full bg-white hover:bg-gray-100 transition-all duration-200 active:scale-95 shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed ${isCapturing ? 'pointer-events-none' : ''}`}
                   title="Chụp ảnh"
                 >
                   {isCapturing ? (

@@ -13,25 +13,18 @@ export const useFaceDetection = (
   capturingRef: React.RefObject<boolean>
 ) => {
   const detectionIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const isWebCameraRef = useRef(false)
-  const isCountingDownRef = useRef(false)
   const onCaptureRef = useRef(onCapture)
   const needsRotationRef = useRef(false)
   const faceDetectedRef = useRef(false)
+  const capturedOnceRef = useRef(false)
 
   const [faceDetected, setFaceDetected] = useState(false)
-  const [countdown, setCountdown] = useState<number | null>(null)
-  const [isCountingDown, setIsCountingDown] = useState(false)
 
   // Update refs
   useEffect(() => {
     isWebCameraRef.current = isWebCamera
   }, [isWebCamera])
-
-  useEffect(() => {
-    isCountingDownRef.current = isCountingDown
-  }, [isCountingDown])
 
   useEffect(() => {
     onCaptureRef.current = onCapture
@@ -114,7 +107,7 @@ export const useFaceDetection = (
             console.log(`📊 Face ratio: ${(faceRatio * 100).toFixed(1)}% of image`)
 
             if (faceRatio > 0.01) {
-              console.log('✅ Face size is good, TRIGGERING COUNTDOWN!')
+              console.log('✅ Face size is good, triggering capture!')
               resolve(true)
             } else {
               console.log('⚠️ Face too small, ignoring')
@@ -137,45 +130,36 @@ export const useFaceDetection = (
     })
   }, [])
 
-  const stopCountdown = useCallback(() => {
-    if (countdownIntervalRef.current) {
-      clearTimeout(countdownIntervalRef.current)
-      countdownIntervalRef.current = null
-    }
-
-    isCountingDownRef.current = false
-    setIsCountingDown(false)
-    setCountdown(null)
+  const resetCapture = useCallback(() => {
+    capturedOnceRef.current = false
+    faceDetectedRef.current = false
+    setFaceDetected(false)
   }, [])
 
-  const startCountdown = useCallback(() => {
-    if (isCountingDownRef.current) return
+  const captureImmediately = useCallback(async () => {
+    if (capturedOnceRef.current) {
+      console.log('⏭️ Already captured, skipping')
+      return
+    }
 
-    console.log('🚀 Face detected → Capture immediately (no countdown)')
+    console.log('🚀 Face detected → Capturing immediately')
+    capturedOnceRef.current = true
 
-    isCountingDownRef.current = true
-    setIsCountingDown(true)
+    try {
+      const image = isWebCameraRef.current
+        ? await captureFromWebCamera()
+        : await handleNativeCapture()
 
-    // Chụp ngay lập tức
-    setTimeout(async () => {
-      try {
-        const image = isWebCameraRef.current
-          ? await captureFromWebCamera()
-          : await handleNativeCapture()
-
-        console.log('✅ IMAGE CAPTURED')
-        onCaptureRef.current(image)
-      } catch (e) {
-        console.error('❌ Capture failed', e)
-      } finally {
-        isCountingDownRef.current = false
-        faceDetectedRef.current = false
-
-        setIsCountingDown(false)
-        setFaceDetected(false)
-        setCountdown(null)
-      }
-    }, 100)
+      console.log('✅ IMAGE CAPTURED')
+      onCaptureRef.current(image)
+    } catch (e) {
+      console.error('❌ Capture failed', e)
+      // Reset flag on error để có thể thử lại
+      capturedOnceRef.current = false
+    } finally {
+      faceDetectedRef.current = false
+      setFaceDetected(false)
+    }
   }, [captureFromWebCamera, handleNativeCapture])
 
   const startFaceDetection = useCallback(() => {
@@ -194,8 +178,8 @@ export const useFaceDetection = (
           return
         }
 
-        if (isCountingDownRef.current) {
-          console.log('⏭️ Skipping detection - countdown in progress')
+        if (capturedOnceRef.current) {
+          console.log('⏭️ Skipping detection - already captured')
           return
         }
 
@@ -258,50 +242,40 @@ export const useFaceDetection = (
             console.log(isInFrame ? '✅ Face IN frame' : '❌ Face OUT of frame')
 
             if (isInFrame) {
-              if (!faceDetected && !isCountingDown) {
-                console.log('🎯 TRIGGERING COUNTDOWN! Face in frame, faceDetected:', faceDetected, 'isCountingDown:', isCountingDown)
+              if (!faceDetectedRef.current) {
+                console.log('🎯 Face in frame → Capturing!')
+                faceDetectedRef.current = true
                 setFaceDetected(true)
-                startCountdown()
-              } else {
-                console.log('⏭️ Skipping countdown trigger:', { faceDetected, isCountingDown })
+                captureImmediately()
               }
             } else {
-              if (faceDetectedRef.current && !isCountingDownRef.current) {
+              if (faceDetectedRef.current && !capturedOnceRef.current) {
                 console.log('⚠️ Face lost → reset')
-                faceDetectedRef.current = false
-                setFaceDetected(false)
-                stopCountdown()
+                resetCapture()
               }
             }
           } else {
             console.log('❌ No face detected')
-            if (faceDetected && !isCountingDown) {
-              console.log('⚠️ No face detected, resetting countdown')
-              setFaceDetected(false)
-              stopCountdown()
-              setCountdown(null)
+            if (faceDetectedRef.current && !capturedOnceRef.current) {
+              console.log('⚠️ No face, resetting')
+              resetCapture()
             }
           }
         } catch (err) {
           console.error('💥 Face detection error:', err)
         }
-      }, 500)
+      }, 300)
     } else {
       console.log('🎥 Starting native camera face detection')
 
       detectionIntervalRef.current = setInterval(async () => {
         if (!isActive || capturingRef.current) {
-          console.log('⏸️ Camera not active or already capturing')
-          return
-        }
-
-        if (isCountingDownRef.current) {
-          console.log('⏭️ Skipping native detection - countdown in progress')
+          console.log('Camera not active or already capturing')
           return
         }
 
         try {
-          console.log('📷 Capturing sample frame for detection...')
+          console.log('Capturing sample frame for detection...')
           const result = await CameraPreview.capture({
             quality: 30,
             width: 640,
@@ -309,7 +283,7 @@ export const useFaceDetection = (
           })
 
           if (result?.value) {
-            console.log('✅ Sample captured, analyzing...')
+            console.log('Sample captured, analyzing...')
             let base64Image = `data:image/jpeg;base64,${result.value}`
 
             if (needsRotation) {
@@ -319,29 +293,27 @@ export const useFaceDetection = (
             const hasFace = await detectFaceInImage(base64Image)
 
             if (hasFace) {
-              if (!faceDetectedRef.current && !isCountingDownRef.current) {
-                console.log('🎯 Native face detected → countdown')
+              if (!faceDetectedRef.current) {
+                console.log('Native face detected → Capturing!')
                 faceDetectedRef.current = true
                 setFaceDetected(true)
-                startCountdown()
+                captureImmediately()
               }
             } else {
-              if (faceDetectedRef.current && !isCountingDownRef.current) {
-                console.log('⚠️ Native face lost')
-                faceDetectedRef.current = false
-                setFaceDetected(false)
-                stopCountdown()
+              if (faceDetectedRef.current && !capturedOnceRef.current) {
+                console.log('Native face lost')
+                resetCapture()
               }
             }
           } else {
-            console.log('❌ No result from capture')
+            console.log('No result from capture')
           }
         } catch (err) {
-          console.error('💥 Native camera detection error:', err)
+          console.error('Native camera detection error:', err)
         }
       }, 1500)
     }
-  }, [isWebCamera, isActive, faceDetected, isCountingDown, needsRotation, startCountdown, stopCountdown, detectFaceInImage, videoRef, capturingRef])
+  }, [isWebCamera, isActive, needsRotation, captureImmediately, resetCapture, detectFaceInImage, videoRef, capturingRef])
 
   const stopFaceDetection = useCallback(() => {
     if (detectionIntervalRef.current) {
@@ -354,22 +326,20 @@ export const useFaceDetection = (
   useEffect(() => {
     if (isActive) {
       const timeout = setTimeout(() => {
-        console.log('⏰ Starting face detection timer...', { isWebCamera, isActive })
+        console.log('Starting face detection timer...', { isWebCamera, isActive })
         startFaceDetection()
       }, isWebCamera ? 1000 : 2000)
 
       return () => {
         clearTimeout(timeout)
         stopFaceDetection()
-        stopCountdown()
+        resetCapture()
       }
     }
-  }, [isActive, isWebCamera, startFaceDetection, stopFaceDetection, stopCountdown])
+  }, [isActive, isWebCamera, startFaceDetection, stopFaceDetection, resetCapture])
 
   return {
     faceDetected,
-    countdown,
-    isCountingDown,
     startFaceDetection,
     stopFaceDetection,
   }

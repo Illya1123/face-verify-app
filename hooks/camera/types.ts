@@ -37,8 +37,6 @@ export interface UseCameraCaptureReturn {
 
 export interface UseFaceDetectionReturn {
   faceDetected: boolean
-  countdown: number | null
-  isCountingDown: boolean
   startFaceDetection: () => void
   stopFaceDetection: () => void
 }

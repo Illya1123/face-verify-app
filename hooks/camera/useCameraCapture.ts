@@ -93,7 +93,7 @@ export const useCameraCapture = (
         resolve(canvas.toDataURL('image/jpeg', 0.92))
       }
       img.onerror = () => {
-        console.error('❌ Crop image load error')
+        console.error('Crop image load error')
         resolve(src)
       }
       img.src = src
@@ -104,7 +104,7 @@ export const useCameraCapture = (
     // console.log('📸 captureFromWebCamera called')
     const video = videoRef.current
     if (!video || !video.srcObject) {
-      console.error('❌ No video source available')
+      console.error('No video source available')
       throw new Error('No video source')
     }
 
@@ -136,24 +136,24 @@ export const useCameraCapture = (
   }, [videoRef])
 
   const handleNativeCapture = useCallback(async () => {
-    console.log('📸 handleNativeCapture called')
+    console.log('handleNativeCapture called')
     try {
       const result = await CameraPreview.capture({ quality: 90 })
       let base64Image = `data:image/jpeg;base64,${result.value}`
 
       if (needsRotationRef.current) {
-        console.log('🔄 Rotating image -90 degrees')
+        console.log('Rotating image -90 degrees')
         base64Image = await rotateImage(base64Image, -90)
       }
 
       // Crop to frame
-      console.log('✂️ Cropping to frame...')
+      console.log('Cropping to frame...')
       base64Image = await cropToFrame(base64Image)
 
-      console.log('✅ Native camera capture successful and cropped')
+      console.log('Native camera capture successful and cropped')
       return base64Image
     } catch (err) {
-      console.error('❌ Native camera capture error:', err)
+      console.error('Native camera capture error:', err)
       throw err
     }
   }, [needsRotationRef])
@@ -165,14 +165,14 @@ export const useCameraCapture = (
     permissionGranted: boolean,
     isActive: boolean
   ) => {
-    console.log('🎬 Manual capture button pressed')
+    console.log('Manual capture button pressed')
     if (!permissionGranted || !isActive) {
-      console.log('❌ Cannot capture: permission or camera not active')
+      console.log('Cannot capture: permission or camera not active')
       return
     }
 
     if (capturingRef.current) {
-      console.log('⚠️ Already capturing, skipping...')
+      console.log('Already capturing, skipping...')
       return
     }
 
@@ -180,13 +180,13 @@ export const useCameraCapture = (
     setIsCapturing(true)
 
     try {
-      console.log('📸 Starting manual capture...', { isWebCamera: isWebCameraRef.current })
+      console.log('Starting manual capture...', { isWebCamera: isWebCameraRef.current })
 
       const base64Image = isWebCameraRef.current
         ? await captureFromWebCamera()
         : await handleNativeCapture()
 
-      console.log('✅ Manual capture successful')
+      console.log('Manual capture successful')
       onCapture(base64Image)
 
       if (isWebCameraRef.current) {
@@ -195,7 +195,7 @@ export const useCameraCapture = (
         await stopCameraSafe()
       }
     } catch (err) {
-      console.error('❌ Manual capture error:', err)
+      console.error('Manual capture error:', err)
     } finally {
       capturingRef.current = false
       setIsCapturing(false)
