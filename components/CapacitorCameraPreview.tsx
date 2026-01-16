@@ -140,11 +140,11 @@ const CapacitorCameraPreview = ({
                     )}
 
                     {/* Debug info - show detection status */}
-                    <div className="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded z-30 space-y-1">
+                    {/* <div className="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded z-30 space-y-1">
                       <div>{isWebCamera ? '🌐 Web' : '📱 Native'} • {faceDetected ? '✅ Phát hiện mặt' : '❌ Không có mặt'}</div>
                       <div>Countdown: {countdown !== null ? `${countdown}s` : 'null'}</div>
                       <div>isCapturing: {isCapturing ? 'true' : 'false'}</div>
-                    </div>
+                    </div> */}
                   </div>
 
                   <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 text-center whitespace-nowrap">
