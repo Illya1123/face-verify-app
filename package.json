@@ -10,7 +10,11 @@
         "start": "next start",
         "lint": "next lint",
         "format": "prettier . --write",
-        "format:check": "prettier . --check"
+        "format:check": "prettier . --check",
+		"android:run": "./scripts/android-run.sh",
+		"android:stop": "./scripts/android-stop.sh",
+		"android:log": "./scripts/android-log.sh",
+		"android:build": "./scripts/android-build-run.sh"
     },
     "dependencies": {
         "@capacitor-community/camera-preview": "^7.0.2",
